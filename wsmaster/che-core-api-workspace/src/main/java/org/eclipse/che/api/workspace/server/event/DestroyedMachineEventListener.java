@@ -30,37 +30,38 @@ import static org.eclipse.che.api.core.model.workspace.WorkspaceStatus.RUNNING;
 import static org.eclipse.che.api.machine.shared.dto.event.MachineStatusEvent.EventType.DESTROYED;
 
 /**
- * The class listens changing of machine status and perform some actions when status is changed.
+ * The class listens changing of machine status and perform some actions when existing machine destroyed.
  *
  * @author Dmitry Shnurenko
  */
 @Singleton
-public class MachineStateListener implements EventSubscriber<MachineStatusEvent> {
-    private static final Logger LOG = LoggerFactory.getLogger(MachineStateListener.class);
+public class DestroyedMachineEventListener implements EventSubscriber<MachineStatusEvent> {
+    private static final Logger LOG = LoggerFactory.getLogger(DestroyedMachineEventListener.class);
 
     private final WorkspaceManager workspaceManager;
     private final EventService     eventService;
 
     @Inject
-    public MachineStateListener(WorkspaceManager workspaceManager, EventService eventService) {
+    public DestroyedMachineEventListener(WorkspaceManager workspaceManager, EventService eventService) {
         this.workspaceManager = workspaceManager;
         this.eventService = eventService;
     }
 
     @Override
     public void onEvent(MachineStatusEvent event) {
-        String workspaceId = event.getWorkspaceId();
+        if (DESTROYED.equals(event.getEventType())) {
+            if (event.isDev()) {
+                String workspaceId = event.getWorkspaceId();
+                try {
+                    WorkspaceImpl currentWorkspace = workspaceManager.getWorkspace(workspaceId);
 
-        if (event.isDev() && DESTROYED.equals(event.getEventType())) {
-            try {
-                WorkspaceImpl currentWorkspace = workspaceManager.getWorkspace(workspaceId);
+                    if (RUNNING.equals(currentWorkspace.getStatus())) {
+                        workspaceManager.stopWorkspace(workspaceId);
+                    }
 
-                if (RUNNING.equals(currentWorkspace.getStatus())) {
-                    workspaceManager.stopWorkspace(workspaceId);
+                } catch (NotFoundException | ServerException | ConflictException exception) {
+                    LOG.error(exception.getLocalizedMessage(), exception);
                 }
-
-            } catch (NotFoundException | ServerException | ConflictException exception) {
-                LOG.error(exception.getLocalizedMessage(), exception);
             }
         }
     }

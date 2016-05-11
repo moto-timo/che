@@ -94,6 +94,10 @@ public class WorkspaceRuntimeImpl implements WorkspaceRuntime {
         this.machines = machines;
     }
 
+    public void addMachine(MachineImpl machine) {
+        this.machines.add(machine);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {
