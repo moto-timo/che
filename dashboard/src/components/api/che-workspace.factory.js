@@ -333,17 +333,13 @@ export class CheWorkspace {
    * @returns {string}
    */
   getWebsocketUrl(workspaceId) {
+    console.log("INSIDE THE GET WORKSPACE URL")
     let workspace = this.workspacesById.get(workspaceId);
     if (!workspace || !workspace.runtime || !workspace.runtime.devMachine) {
       return '';
     }
-
-    for (var link in workspace.runtime.devMachine.links) {
-      if (link.rel === 'wsagent.websocket') {
-        return link.href;
-      }
-    }
-    return '';
+    let websocketLink = this.lodash.find(workspace.runtime.devMachine.links, l => l.rel === "wsagent.websocket");
+    return websocketLink ? websocketLink.href : '';
   }
 
   getIdeUrl(workspaceName) {
