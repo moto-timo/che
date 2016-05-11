@@ -46,12 +46,12 @@ export class UniqueWorkspaceNameValidator {
           scopingTest = $scope;
         }
 
-        let currentWorkspaceId = scopingTest.$eval(attributes.uniqueWorkspaceName),
+        let currentWorkspaceName = scopingTest.$eval(attributes.uniqueWorkspaceName),
           workspaces = this.cheAPI.getWorkspace().getWorkspaces();
         if (workspaces.length) {
 
           for (let i=0; i<workspaces.length; i++) {
-            if (workspaces[i].id === currentWorkspaceId) {
+            if (workspaces[i].config.name === currentWorkspaceName) {
               continue;
             }
             if (workspaces[i].config.name === modelValue) {
