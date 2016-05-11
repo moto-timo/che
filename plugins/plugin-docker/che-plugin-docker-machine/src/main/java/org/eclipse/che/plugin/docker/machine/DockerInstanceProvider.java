@@ -418,7 +418,7 @@ public class DockerInstanceProvider implements InstanceProvider {
 
                 env = new ArrayList<>(devMachineEnvVariables);
                 env.add(DockerInstanceRuntimeInfo.CHE_WORKSPACE_ID + '=' + machine.getWorkspaceId());
-                env.add(DockerInstanceRuntimeInfo.USER_TOKEN + '=' + EnvironmentContext.getCurrent().getUser().getToken());
+                env.add(DockerInstanceRuntimeInfo.USER_TOKEN + '=' + getUserToken(machine.getWorkspaceId()));
             } else {
                 portsToExpose = new HashMap<>(commonMachinePortsToExpose);
                 volumes = commonMachineSystemVolumes;
@@ -468,6 +468,11 @@ public class DockerInstanceProvider implements InstanceProvider {
         } catch (IOException e) {
             throw new MachineException(e.getLocalizedMessage(), e);
         }
+    }
+
+    // workspace identifier
+    protected String getUserToken(String wsId) {
+        return EnvironmentContext.getCurrent().getUser().getToken();
     }
 
     /**
