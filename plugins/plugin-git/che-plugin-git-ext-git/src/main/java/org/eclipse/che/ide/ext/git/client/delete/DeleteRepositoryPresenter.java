@@ -28,6 +28,7 @@ import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPrese
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -48,7 +49,6 @@ public class DeleteRepositoryPresenter {
     private final DtoUnmarshallerFactory  dtoUnmarshaller;
     private final GitOutputConsoleFactory gitOutputConsoleFactory;
     private final EventBus                eventBus;
-    private final String                  workspaceId;
 
     /**
      * Create presenter.
@@ -77,19 +77,17 @@ public class DeleteRepositoryPresenter {
         this.projectService = projectServiceClient;
         this.dtoUnmarshaller = dtoUnmarshaller;
         this.eventBus = eventBus;
-
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /** Delete Git repository. */
     public void deleteRepository() {
         final CurrentProject project = appContext.getCurrentProject();
         final GitOutputConsole console = gitOutputConsoleFactory.create(DELETE_REPO_COMMAND_NAME);
-        service.deleteRepository(workspaceId, project.getRootProject(), new AsyncRequestCallback<Void>() {
+        service.deleteRepository(appContext.getDevMachine(), project.getRootProject(), new AsyncRequestCallback<Void>() {
             @Override
             protected void onSuccess(Void result) {
                 console.print(constant.deleteGitRepositorySuccess());
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                 notificationManager.notify(constant.deleteGitRepositorySuccess(), project.getRootProject());
                 getRootProject(project.getRootProject());
             }
@@ -97,14 +95,14 @@ public class DeleteRepositoryPresenter {
             @Override
             protected void onFailure(Throwable exception) {
                 console.printError(exception.getMessage());
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                notificationManager.notify(constant.failedToDeleteRepository(), FAIL, true, project.getRootProject());
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                notificationManager.notify(constant.failedToDeleteRepository(), FAIL, FLOAT_MODE, project.getRootProject());
             }
         });
     }
 
     private void getRootProject(final ProjectConfigDto config) {
-        projectService.getProject(workspaceId,
+        projectService.getProject(appContext.getDevMachine(),
                                   config.getPath(),
                                   new AsyncRequestCallback<ProjectConfigDto>(dtoUnmarshaller.newUnmarshaller(ProjectConfigDto.class)) {
                                       @Override

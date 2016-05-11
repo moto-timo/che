@@ -28,14 +28,15 @@ import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
 import org.eclipse.che.ide.project.node.ResourceBasedNode;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.eclipse.che.api.git.shared.DiffRequest.DiffType.NAME_STATUS;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.compare.FileStatus.defineStatus;
 
@@ -91,7 +92,7 @@ public class CompareWithLatestAction extends GitAction {
         pattern = path.replaceFirst(project.getPath(), "");
         pattern = (pattern.startsWith("/")) ? pattern.replaceFirst("/", "") : pattern;
 
-        gitService.diff(appContext.getWorkspaceId(), project, Collections.singletonList(pattern), NAME_STATUS, false, 0, REVISION, false,
+        gitService.diff(appContext.getDevMachine(), project, Collections.singletonList(pattern), NAME_STATUS, false, 0, REVISION, false,
                         new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                             @Override
                             protected void onSuccess(String result) {
@@ -121,7 +122,7 @@ public class CompareWithLatestAction extends GitAction {
 
                             @Override
                             protected void onFailure(Throwable exception) {
-                                notificationManager.notify(locale.diffFailed(), FAIL, false);
+                                notificationManager.notify(locale.diffFailed(), FAIL, NOT_EMERGE_MODE);
                             }
                         });
     }

@@ -24,11 +24,8 @@ import org.eclipse.che.api.machine.shared.dto.MachineProcessDto;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.PromiseError;
-import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedEvent;
-import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedHandler;
 import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStoppedEvent;
 import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStoppedHandler;
-import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.mvp.View;
@@ -53,8 +50,8 @@ import org.eclipse.che.ide.extension.machine.client.outputspanel.console.Default
 import org.eclipse.che.ide.extension.machine.client.perspective.terminal.TerminalPresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.event.ProcessFinishedEvent;
 import org.eclipse.che.ide.extension.machine.client.processes.event.ProcessFinishedHandler;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.util.loging.Log;
 import org.vectomatic.dom.svg.ui.SVGResource;
 
@@ -64,6 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.extension.machine.client.perspective.terminal.TerminalPresenter.TerminalStateListener;
 import static org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeNode.ProcessNodeType.COMMAND_NODE;
@@ -83,7 +81,6 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
                                                                      HasView,
                                                                      ProcessFinishedHandler,
                                                                      OutputConsole.ConsoleOutputListener,
-                                                                     WorkspaceStartedHandler,
                                                                      WorkspaceStoppedHandler,
                                                                      MachineStateEvent.Handler {
 
@@ -149,7 +146,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         this.consoleCommands = new HashMap<>();
         this.machineNodes = new HashMap<>();
 
-        this.fetchMachines();
+        fetchMachines();
 
         this.view.setDelegate(this);
         this.view.setTitle(localizationConstant.viewConsolesTitle());
@@ -166,7 +163,6 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         });
 
         eventBus.addHandler(ProcessFinishedEvent.TYPE, this);
-        eventBus.addHandler(WorkspaceStartedEvent.TYPE, this);
         eventBus.addHandler(WorkspaceStoppedEvent.TYPE, this);
         eventBus.addHandler(MachineStateEvent.TYPE, this);
     }
@@ -175,7 +171,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
     public void onProcessFinished(ProcessFinishedEvent event) {
         for (Map.Entry<String, OutputConsole> entry : consoles.entrySet()) {
             if (entry.getValue().isFinished()) {
-                view.setProcessRunning(entry.getKey(), false);
+                view.setStopButtonVisibility(entry.getKey(), false);
             }
         }
     }
@@ -198,7 +194,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
 
     @Nullable
     @Override
-    public SVGResource getTitleSVGImage() {
+    public SVGResource getTitleImage() {
         return resources.terminal();
     }
 
@@ -218,6 +214,8 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
 
     @Override
     public void onMachineRunning(MachineStateEvent event) {
+        workspaceAgent.setActivePart(this);
+
         machineService.getMachine(event.getMachineId()).then(new Operation<MachineDto>() {
             @Override
             public void apply(MachineDto machine) throws OperationException {
@@ -277,6 +275,11 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         List<ProcessTreeNode> processTreeNodes = new ArrayList<ProcessTreeNode>();
         ProcessTreeNode machineNode = new ProcessTreeNode(MACHINE_NODE, rootNode, machine, null, processTreeNodes);
         machineNode.setRunning(true);
+
+        if (rootChildren.contains(machineNode)) {
+            rootChildren.remove(machineNode);
+        }
+
         rootChildren.add(machineNode);
         view.setProcessesData(rootNode);
 
@@ -328,7 +331,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         ProcessTreeNode machineTreeNode = findProcessTreeNodeById(machineId);
         if (machineTreeNode == null) {
             notificationManager.notify(localizationConstant.failedToExecuteCommand(), localizationConstant.machineNotFound(machineId),
-                                       FAIL, true);
+                                       FAIL, FLOAT_MODE);
             Log.error(getClass(), localizationConstant.machineNotFound(machineId));
             return;
         }
@@ -375,8 +378,8 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         workspaceAgent.setActivePart(this);
 
         if (selectedTreeNode == null) {
-            if (appContext.getDevMachineId() != null) {
-                onAddTerminal(appContext.getDevMachineId());
+            if (appContext.getDevMachine() != null) {
+                onAddTerminal(appContext.getDevMachine().getId());
             }
             return;
         }
@@ -386,7 +389,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
         } else {
             if (selectedTreeNode.getParent() != null &&
                 selectedTreeNode.getParent().getType() == MACHINE_NODE) {
-                onAddTerminal(selectedTreeNode.getParent().getId());
+                onAddTerminal(appContext.getDevMachine().getId());
             }
         }
     }
@@ -407,7 +410,7 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
 
                 if (machineTreeNode == null) {
                     notificationManager.notify(localizationConstant.failedToConnectTheTerminal(),
-                                               localizationConstant.machineNotFound(machineId), FAIL, true);
+                                               localizationConstant.machineNotFound(machineId), FAIL, FLOAT_MODE);
                     Log.error(getClass(), localizationConstant.machineNotFound(machineId));
                     return;
                 }
@@ -581,8 +584,10 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
 
         for (Map.Entry<String, OutputConsole> entry : consoles.entrySet()) {
             String nodeId = entry.getKey();
-            if (selectedNodeId.equals(nodeId)) {
-                view.setProcessRunning(nodeId, !entry.getValue().isFinished());
+            if (selectedNodeId.equals(nodeId) && !entry.getValue().isFinished()) {
+                view.setStopButtonVisibility(selectedNodeId, true);
+            } else {
+                view.setStopButtonVisibility(nodeId, false);
             }
         }
     }
@@ -653,13 +658,10 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
     }
 
     @Override
-    public void onWorkspaceStarted(WorkspaceDto workspace) {
-    }
-
-    @Override
     public void onWorkspaceStopped(WorkspaceStoppedEvent event) {
         for (ProcessTreeNode processTreeNode : rootNode.getChildren()) {
             if (processTreeNode.getType() == MACHINE_NODE) {
+                onCloseTerminal(processTreeNode);
                 processTreeNode.setRunning(false);
                 if (processTreeNode.getChildren() != null) {
                     processTreeNode.getChildren().clear();
@@ -667,9 +669,11 @@ public class ConsolesPanelPresenter extends BasePresenter implements ConsolesPan
             }
         }
 
+        rootNode.getChildren().clear();
+        rootChildren.clear();
+
         view.clear();
         view.selectNode(null);
         view.setProcessesData(rootNode);
     }
-
 }

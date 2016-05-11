@@ -10,17 +10,20 @@
  *******************************************************************************/
 package org.eclipse.che.ide.ext.git.client.fetch;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+
 import org.eclipse.che.api.core.rest.shared.dto.ServiceError;
-import org.eclipse.che.ide.api.notification.StatusNotification;
-import org.eclipse.che.ide.ext.git.client.GitLocalizationConstant;
 import org.eclipse.che.api.git.gwt.client.GitServiceClient;
 import org.eclipse.che.api.git.shared.Branch;
 import org.eclipse.che.api.git.shared.Remote;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.app.CurrentProject;
 import org.eclipse.che.ide.api.notification.NotificationManager;
+import org.eclipse.che.ide.api.notification.StatusNotification;
 import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.ext.git.client.BranchSearcher;
+import org.eclipse.che.ide.ext.git.client.GitLocalizationConstant;
 import org.eclipse.che.ide.ext.git.client.outputconsole.GitOutputConsole;
 import org.eclipse.che.ide.ext.git.client.outputconsole.GitOutputConsoleFactory;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
@@ -29,9 +32,6 @@ import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.websocket.WebSocketException;
 import org.eclipse.che.ide.websocket.rest.RequestCallback;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +39,7 @@ import java.util.List;
 
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_LOCAL;
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_REMOTE;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
@@ -62,7 +63,6 @@ public class FetchPresenter implements FetchView.ActionDelegate {
     private final GitServiceClient        service;
     private final AppContext              appContext;
     private final GitLocalizationConstant constant;
-    private final String                  workspaceId;
 
     private CurrentProject project;
 
@@ -88,7 +88,6 @@ public class FetchPresenter implements FetchView.ActionDelegate {
         this.appContext = appContext;
         this.constant = constant;
         this.notificationManager = notificationManager;
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /** Show dialog. */
@@ -104,7 +103,7 @@ public class FetchPresenter implements FetchView.ActionDelegate {
      * local).
      */
     private void updateRemotes() {
-        service.remoteList(workspaceId, project.getRootProject(), null, true,
+        service.remoteList(appContext.getDevMachine(), project.getRootProject(), null, true,
                            new AsyncRequestCallback<List<Remote>>(dtoUnmarshallerFactory.newListUnmarshaller(Remote.class)) {
                                @Override
                                protected void onSuccess(List<Remote> result) {
@@ -118,8 +117,8 @@ public class FetchPresenter implements FetchView.ActionDelegate {
                                protected void onFailure(Throwable exception) {
                                    GitOutputConsole console = gitOutputConsoleFactory.create(FETCH_COMMAND_NAME);
                                    console.printError(constant.remoteListFailed());
-                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                   notificationManager.notify(constant.remoteListFailed(), FAIL, true, project.getRootProject());
+                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                   notificationManager.notify(constant.remoteListFailed(), FAIL, FLOAT_MODE, project.getRootProject());
                                    view.setEnableFetchButton(false);
                                }
                            });
@@ -132,7 +131,7 @@ public class FetchPresenter implements FetchView.ActionDelegate {
      *         is a remote mode
      */
     private void updateBranches(@NotNull final String remoteMode) {
-        service.branchList(workspaceId, project.getRootProject(), remoteMode,
+        service.branchList(appContext.getDevMachine(), project.getRootProject(), remoteMode,
                            new AsyncRequestCallback<List<Branch>>(dtoUnmarshallerFactory.newListUnmarshaller(Branch.class)) {
                                @Override
                                protected void onSuccess(List<Branch> result) {
@@ -156,8 +155,8 @@ public class FetchPresenter implements FetchView.ActionDelegate {
                                            exception.getMessage() != null ? exception.getMessage() : constant.branchesListFailed();
                                    GitOutputConsole console = gitOutputConsoleFactory.create(FETCH_COMMAND_NAME);
                                    console.printError(errorMessage);
-                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                   notificationManager.notify(constant.branchesListFailed(), FAIL, true, project.getRootProject());
+                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                   notificationManager.notify(constant.branchesListFailed(), FAIL, FLOAT_MODE, project.getRootProject());
                                    view.setEnableFetchButton(false);
                                }
                            });
@@ -171,15 +170,15 @@ public class FetchPresenter implements FetchView.ActionDelegate {
         boolean removeDeletedRefs = view.isRemoveDeletedRefs();
 
         final StatusNotification notification =
-                notificationManager.notify(constant.fetchProcess(), PROGRESS, true, project.getRootProject());
+                notificationManager.notify(constant.fetchProcess(), PROGRESS, FLOAT_MODE, project.getRootProject());
         final GitOutputConsole console = gitOutputConsoleFactory.create(FETCH_COMMAND_NAME);
         try {
-            service.fetch(workspaceId, project.getRootProject(), remoteName, getRefs(), removeDeletedRefs,
+            service.fetch(appContext.getDevMachine(), project.getRootProject(), remoteName, getRefs(), removeDeletedRefs,
                           new RequestCallback<String>() {
                               @Override
                               protected void onSuccess(String result) {
                                   console.print(constant.fetchSuccess(remoteUrl));
-                                  consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                                  consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                                   notification.setStatus(SUCCESS);
                                   notification.setTitle(constant.fetchSuccess(remoteUrl));
                               }
@@ -187,13 +186,13 @@ public class FetchPresenter implements FetchView.ActionDelegate {
                               @Override
                               protected void onFailure(Throwable exception) {
                                   handleError(exception, remoteUrl, notification, console);
-                                  consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                                  consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                               }
                           }
                          );
         } catch (WebSocketException e) {
             handleError(e, remoteUrl, notification, console);
-            consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+            consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
         }
         view.close();
     }

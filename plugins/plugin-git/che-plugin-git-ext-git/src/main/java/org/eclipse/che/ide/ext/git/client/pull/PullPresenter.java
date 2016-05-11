@@ -35,19 +35,20 @@ import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPrese
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-import static org.eclipse.che.ide.util.ExceptionUtils.getErrorCode;
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_LOCAL;
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_REMOTE;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
-import static org.eclipse.che.ide.ext.git.client.remote.RemotePresenter.REMOTE_REPO_COMMAND_NAME;
 import static org.eclipse.che.ide.ext.git.client.compare.branchList.BranchListPresenter.BRANCH_LIST_COMMAND_NAME;
+import static org.eclipse.che.ide.ext.git.client.remote.RemotePresenter.REMOTE_REPO_COMMAND_NAME;
+import static org.eclipse.che.ide.util.ExceptionUtils.getErrorCode;
 
 /**
  * Presenter pulling changes from remote repository.
@@ -74,7 +75,6 @@ public class PullPresenter implements PullView.ActionDelegate {
     private final GitOutputConsoleFactory  gitOutputConsoleFactory;
     private final ConsolesPanelPresenter   consolesPanelPresenter;
     private       CurrentProject           project;
-    private final String                   workspaceId;
 
 
     @Inject
@@ -105,7 +105,6 @@ public class PullPresenter implements PullView.ActionDelegate {
         this.appContext = appContext;
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /** Show dialog. */
@@ -121,7 +120,7 @@ public class PullPresenter implements PullView.ActionDelegate {
     private void updateRemotes() {
         view.setEnablePullButton(true);
 
-        gitServiceClient.remoteList(workspaceId, project.getRootProject(), null, true,
+        gitServiceClient.remoteList(appContext.getDevMachine(), project.getRootProject(), null, true,
                                     new AsyncRequestCallback<List<Remote>>(dtoUnmarshallerFactory.newListUnmarshaller(Remote.class)) {
                                         @Override
                                         protected void onSuccess(List<Remote> result) {
@@ -147,7 +146,7 @@ public class PullPresenter implements PullView.ActionDelegate {
      *         is a remote mode
      */
     private void updateBranches(@NotNull final String remoteMode) {
-        gitServiceClient.branchList(workspaceId, project.getRootProject(), remoteMode,
+        gitServiceClient.branchList(appContext.getDevMachine(), project.getRootProject(), remoteMode,
                                     new AsyncRequestCallback<List<Branch>>(dtoUnmarshallerFactory.newListUnmarshaller(Branch.class)) {
                                         @Override
                                         protected void onSuccess(List<Branch> result) {
@@ -185,15 +184,15 @@ public class PullPresenter implements PullView.ActionDelegate {
         final List<EditorPartPresenter> openedEditors = editorAgent.getOpenedEditors();
 
         final StatusNotification notification =
-                notificationManager.notify(constant.pullProcess(), PROGRESS, true, project.getRootProject());
+                notificationManager.notify(constant.pullProcess(), PROGRESS, FLOAT_MODE, project.getRootProject());
 
-        gitServiceClient.pull(workspaceId, project.getRootProject(), getRefs(), remoteName,
+        gitServiceClient.pull(appContext.getDevMachine(), project.getRootProject(), getRefs(), remoteName,
                               new AsyncRequestCallback<PullResponse>(dtoUnmarshallerFactory.newUnmarshaller(PullResponse.class)) {
                                   @Override
                                   protected void onSuccess(PullResponse result) {
                                       GitOutputConsole console = gitOutputConsoleFactory.create(PULL_COMMAND_NAME);
                                       console.print(result.getCommandOutput(), GREEN_COLOR);
-                                      consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                                      consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                                       notification.setStatus(SUCCESS);
                                       if (result.getCommandOutput().contains("Already up-to-date")) {
                                           notification.setTitle(constant.pullUpToDate());
@@ -274,8 +273,8 @@ public class PullPresenter implements PullView.ActionDelegate {
 
         GitOutputConsole console = gitOutputConsoleFactory.create(commandName);
         console.printError(errorMessage);
-        consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-        notificationManager.notify(errorMessage, FAIL, true, project.getRootProject());
+        consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+        notificationManager.notify(errorMessage, FAIL, FLOAT_MODE, project.getRootProject());
     }
 
     /** {@inheritDoc} */

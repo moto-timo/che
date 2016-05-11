@@ -16,7 +16,7 @@
     <parent>
         <artifactId>che-core-parent</artifactId>
         <groupId>org.eclipse.che.core</groupId>
-        <version>4.2.0-RC1-SNAPSHOT</version>
+        <version>4.3.0-RC1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>che-core-client-gwt-parent</artifactId>
@@ -25,7 +25,6 @@
     <modules>
         <module>che-core-client-gwt-core</module>
         <module>che-core-client-gwt-auth</module>
-        <module>che-core-client-gwt-account</module>
         <module>che-core-client-gwt-machine</module>
         <module>che-core-client-gwt-workspace</module>
         <module>che-core-client-gwt-project</module>

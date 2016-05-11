@@ -19,8 +19,8 @@ import org.eclipse.che.ide.api.app.CurrentProject;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.plugin.svn.ide.SubversionClientService;
 import org.eclipse.che.plugin.svn.ide.SubversionExtensionLocalizationConstants;
 import org.eclipse.che.plugin.svn.ide.common.StatusColors;
@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 public class ResolvePresenter extends SubversionActionPresenter implements ResolveView.ActionDelegate {
@@ -92,7 +93,7 @@ public class ResolvePresenter extends SubversionActionPresenter implements Resol
 
                                                   @Override
                                                   public void onFailure(Throwable exception) {
-                                                      notificationManager.notify(exception.getMessage(), FAIL, true);
+                                                      notificationManager.notify(exception.getMessage(), FAIL, FLOAT_MODE);
                                                   }
                                               });
     }
@@ -154,7 +155,7 @@ public class ResolvePresenter extends SubversionActionPresenter implements Resol
 
                                                 @Override
                                                 public void onFailure(Throwable exception) {
-                                                    notificationManager.notify(exception.getMessage(), FAIL, true);
+                                                    notificationManager.notify(exception.getMessage(), FAIL, FLOAT_MODE);
                                                 }
                                             });
         }

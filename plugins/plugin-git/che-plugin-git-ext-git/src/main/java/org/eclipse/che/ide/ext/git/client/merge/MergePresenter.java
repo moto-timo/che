@@ -33,8 +33,8 @@ import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPrese
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -43,6 +43,7 @@ import java.util.List;
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_LOCAL;
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_REMOTE;
 import static org.eclipse.che.api.git.shared.MergeResult.MergeStatus.ALREADY_UP_TO_DATE;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.merge.Reference.RefType.LOCAL_BRANCH;
 import static org.eclipse.che.ide.ext.git.client.merge.Reference.RefType.REMOTE_BRANCH;
@@ -70,7 +71,6 @@ public class MergePresenter implements MergeView.ActionDelegate {
     private final EditorAgent              editorAgent;
     private final AppContext               appContext;
     private final NotificationManager      notificationManager;
-    private final String                   workspaceId;
 
     private Reference selectedReference;
 
@@ -100,8 +100,6 @@ public class MergePresenter implements MergeView.ActionDelegate {
         this.appContext = appContext;
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
-
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /** Show dialog. */
@@ -111,7 +109,7 @@ public class MergePresenter implements MergeView.ActionDelegate {
         selectedReference = null;
         view.setEnableMergeButton(false);
 
-        service.branchList(workspaceId, project, LIST_LOCAL,
+        service.branchList(appContext.getDevMachine(), project, LIST_LOCAL,
                            new AsyncRequestCallback<List<Branch>>(dtoUnmarshallerFactory.newListUnmarshaller(Branch.class)) {
                                @Override
                                protected void onSuccess(List<Branch> result) {
@@ -128,12 +126,12 @@ public class MergePresenter implements MergeView.ActionDelegate {
                                @Override
                                protected void onFailure(Throwable exception) {
                                    console.printError(exception.getMessage());
-                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                   notificationManager.notify(constant.branchesListFailed(), FAIL, true, project);
+                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                   notificationManager.notify(constant.branchesListFailed(), FAIL, FLOAT_MODE, project);
                                }
                            });
 
-        service.branchList(workspaceId, project, LIST_REMOTE,
+        service.branchList(appContext.getDevMachine(), project, LIST_REMOTE,
                            new AsyncRequestCallback<List<Branch>>(dtoUnmarshallerFactory.newListUnmarshaller(Branch.class)) {
                                @Override
                                protected void onSuccess(List<Branch> result) {
@@ -151,8 +149,8 @@ public class MergePresenter implements MergeView.ActionDelegate {
                                @Override
                                protected void onFailure(Throwable exception) {
                                    console.printError(exception.getMessage());
-                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                   notificationManager.notify(constant.branchesListFailed(), FAIL, true, project);
+                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                   notificationManager.notify(constant.branchesListFailed(), FAIL, FLOAT_MODE, project);
                                }
                            });
 
@@ -171,12 +169,12 @@ public class MergePresenter implements MergeView.ActionDelegate {
         view.close();
 
         final GitOutputConsole console = gitOutputConsoleFactory.create(MERGE_COMMAND_NAME);
-        service.merge(workspaceId, appContext.getCurrentProject().getRootProject(), selectedReference.getDisplayName(),
+        service.merge(appContext.getDevMachine(), appContext.getCurrentProject().getRootProject(), selectedReference.getDisplayName(),
                       new AsyncRequestCallback<MergeResult>(dtoUnmarshallerFactory.newUnmarshaller(MergeResult.class)) {
                           @Override
                           protected void onSuccess(final MergeResult result) {
                               console.print(formMergeMessage(result));
-                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                               notificationManager.notify(formMergeMessage(result), appContext.getCurrentProject().getRootProject());
                               refreshProject(editorAgent.getOpenedEditors());
                           }
@@ -195,9 +193,9 @@ public class MergePresenter implements MergeView.ActionDelegate {
                                   return;
                               }
                               console.printError(exception.getMessage());
-                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                               notificationManager
-                                      .notify(constant.mergeFailed(), FAIL, true, appContext.getCurrentProject().getRootProject());
+                                      .notify(constant.mergeFailed(), FAIL, FLOAT_MODE, appContext.getCurrentProject().getRootProject());
                           }
                       });
     }

@@ -33,8 +33,8 @@ import org.eclipse.che.ide.project.node.ResourceBasedNode;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.Collections;
@@ -44,6 +44,7 @@ import java.util.Map;
 
 import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_ALL;
 import static org.eclipse.che.api.git.shared.DiffRequest.DiffType.NAME_STATUS;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.compare.FileStatus.defineStatus;
 
@@ -68,7 +69,6 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
     private final GitLocalizationConstant  locale;
     private final AppContext               appContext;
     private final NotificationManager      notificationManager;
-    private final String                   workspaceId;
 
     private CurrentProject project;
     private Branch         selectedBranch;
@@ -98,8 +98,6 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
         this.gitOutputConsoleFactory = gitOutputConsoleFactory;
         this.consolesPanelPresenter = consolesPanelPresenter;
-        this.workspaceId = appContext.getWorkspaceId();
-
         this.view.setDelegate(this);
     }
 
@@ -133,7 +131,7 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
         pattern = path.replaceFirst(project.getPath(), "");
         pattern = (pattern.startsWith("/")) ? pattern.replaceFirst("/", "") : pattern;
 
-        gitService.diff(workspaceId, project, Collections.singletonList(pattern), NAME_STATUS, false, 0, selectedBranch.getName(), false,
+        gitService.diff(appContext.getDevMachine(), project, Collections.singletonList(pattern), NAME_STATUS, false, 0, selectedBranch.getName(), false,
                         new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                             @Override
                             protected void onSuccess(String result) {
@@ -162,7 +160,7 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
 
                             @Override
                             protected void onFailure(Throwable exception) {
-                                notificationManager.notify(locale.diffFailed(), FAIL, false);
+                                notificationManager.notify(locale.diffFailed(), FAIL, NOT_EMERGE_MODE);
                             }
                         });
         view.close();
@@ -185,7 +183,7 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
 
     /** Get list of branches from selected project. */
     private void getBranches() {
-        gitService.branchList(workspaceId, project.getRootProject(), LIST_ALL,
+        gitService.branchList(appContext.getDevMachine(), project.getRootProject(), LIST_ALL,
                               new AsyncRequestCallback<List<Branch>>(dtoUnmarshallerFactory.newListUnmarshaller(Branch.class)) {
                                   @Override
                                   protected void onSuccess(List<Branch> result) {
@@ -199,8 +197,8 @@ public class BranchListPresenter implements BranchListView.ActionDelegate {
                                               (exception.getMessage() != null) ? exception.getMessage() : locale.branchesListFailed();
                                       GitOutputConsole console = gitOutputConsoleFactory.create(BRANCH_LIST_COMMAND_NAME);
                                       console.printError(errorMessage);
-                                      consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                      notificationManager.notify(locale.branchesListFailed(), FAIL, false);
+                                      consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                      notificationManager.notify(locale.branchesListFailed(), FAIL, NOT_EMERGE_MODE);
                                   }
                               }
                              );

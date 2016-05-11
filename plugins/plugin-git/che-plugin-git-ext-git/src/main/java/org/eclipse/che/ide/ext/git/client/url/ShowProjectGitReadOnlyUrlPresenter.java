@@ -10,12 +10,15 @@
  *******************************************************************************/
 package org.eclipse.che.ide.ext.git.client.url;
 
-import org.eclipse.che.ide.ext.git.client.GitLocalizationConstant;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+
 import org.eclipse.che.api.git.gwt.client.GitServiceClient;
 import org.eclipse.che.api.git.shared.Remote;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.app.CurrentProject;
 import org.eclipse.che.ide.api.notification.NotificationManager;
+import org.eclipse.che.ide.ext.git.client.GitLocalizationConstant;
 import org.eclipse.che.ide.ext.git.client.outputconsole.GitOutputConsole;
 import org.eclipse.che.ide.ext.git.client.outputconsole.GitOutputConsoleFactory;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
@@ -23,11 +26,9 @@ import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.remote.RemotePresenter.REMOTE_REPO_COMMAND_NAME;
 
@@ -49,7 +50,6 @@ public class ShowProjectGitReadOnlyUrlPresenter implements ShowProjectGitReadOnl
     private final AppContext                    appContext;
     private final GitLocalizationConstant       constant;
     private final NotificationManager           notificationManager;
-    private final String                        workspaceId;
 
     @Inject
     public ShowProjectGitReadOnlyUrlPresenter(ShowProjectGitReadOnlyUrlView view,
@@ -69,14 +69,13 @@ public class ShowProjectGitReadOnlyUrlPresenter implements ShowProjectGitReadOnl
         this.constant = constant;
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /** Show dialog. */
     public void showDialog() {
         final CurrentProject project = appContext.getCurrentProject();
         view.showDialog();
-        service.remoteList(workspaceId, project.getRootProject(), null, true,
+        service.remoteList(appContext.getDevMachine(), project.getRootProject(), null, true,
                            new AsyncRequestCallback<List<Remote>>(dtoUnmarshallerFactory.newListUnmarshaller(Remote.class)) {
                                @Override
                                protected void onSuccess(List<Remote> result) {
@@ -91,12 +90,12 @@ public class ShowProjectGitReadOnlyUrlPresenter implements ShowProjectGitReadOnl
                                                                           : constant.remoteListFailed();
                                    GitOutputConsole console = gitOutputConsoleFactory.create(REMOTE_REPO_COMMAND_NAME);
                                    console.printError(errorMessage);
-                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                   notificationManager.notify(constant.remoteListFailed(), FAIL, true, project.getRootProject());
+                                   consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                   notificationManager.notify(constant.remoteListFailed(), FAIL, FLOAT_MODE, project.getRootProject());
                                }
                            }
                           );
-        service.getGitReadOnlyUrl(workspaceId, project.getRootProject(),
+        service.getGitReadOnlyUrl(appContext.getDevMachine(), project.getRootProject(),
                                   new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                                       @Override
                                       protected void onSuccess(String result) {
@@ -110,8 +109,8 @@ public class ShowProjectGitReadOnlyUrlPresenter implements ShowProjectGitReadOnl
                                           final GitOutputConsole console = gitOutputConsoleFactory.create(READ_ONLY_URL_COMMAND_NAME);
                                           console.printError(errorMessage);
                                           consolesPanelPresenter
-                                                  .addCommandOutput(appContext.getDevMachineId(), console);
-                                          notificationManager.notify(constant.initFailed(), FAIL, true, project.getRootProject());
+                                                  .addCommandOutput(appContext.getDevMachine().getId(), console);
+                                          notificationManager.notify(constant.initFailed(), FAIL, FLOAT_MODE, project.getRootProject());
                                       }
                                   });
     }

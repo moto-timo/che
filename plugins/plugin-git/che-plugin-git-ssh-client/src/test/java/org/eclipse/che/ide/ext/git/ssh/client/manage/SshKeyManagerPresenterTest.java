@@ -25,17 +25,18 @@ import org.eclipse.che.api.ssh.shared.dto.SshPairDto;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.notification.StatusNotification;
+import org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode;
 import org.eclipse.che.ide.ext.git.ssh.client.SshLocalizationConstant;
 import org.eclipse.che.ide.ext.git.ssh.client.SshResources;
 import org.eclipse.che.ide.ext.git.ssh.client.upload.UploadSshKeyPresenter;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
-import org.eclipse.che.ide.ui.dialogs.InputCallback;
-import org.eclipse.che.ide.ui.dialogs.confirm.ConfirmDialog;
-import org.eclipse.che.ide.ui.dialogs.input.InputDialog;
-import org.eclipse.che.ide.ui.dialogs.message.MessageDialog;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.InputCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmDialog;
+import org.eclipse.che.ide.api.dialogs.InputDialog;
+import org.eclipse.che.ide.api.dialogs.MessageDialog;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,8 +51,8 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -255,7 +256,7 @@ public class SshKeyManagerPresenterTest {
 
         verify(confirmDialog).show();
         verify(service).deletePair(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE), anyString());
-        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(true));
+        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(FLOAT_MODE));
         verify(service, never()).getPairs(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE));
     }
 
@@ -317,7 +318,7 @@ public class SshKeyManagerPresenterTest {
         verify(service).deletePair(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE), eq(GITHUB_HOST));
         verify(service).getPairs(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE));
         verify(view, never()).setPairs(eq(sshPairDtoArray));
-        verify(notificationManager).notify(anyString(), any(StatusNotification.Status.class), anyBoolean());
+        verify(notificationManager).notify(anyString(), any(StatusNotification.Status.class), (DisplayMode)anyObject());
     }
 
     @Test
@@ -405,7 +406,7 @@ public class SshKeyManagerPresenterTest {
         verify(service).generatePair(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE), eq(GITHUB_HOST));
         verify(service, never()).getPairs(Matchers.eq(SshKeyManagerPresenter.GIT_SSH_SERVICE));
         verify(view, never()).setPairs((List<SshPairDto>)anyObject());
-        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), anyBoolean());
+        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), (DisplayMode)anyObject());
     }
 
     @Test

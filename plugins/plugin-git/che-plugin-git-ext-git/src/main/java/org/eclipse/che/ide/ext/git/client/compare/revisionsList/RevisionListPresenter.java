@@ -25,18 +25,17 @@ import org.eclipse.che.ide.api.selection.Selection;
 import org.eclipse.che.ide.api.selection.SelectionAgent;
 import org.eclipse.che.ide.ext.git.client.GitLocalizationConstant;
 import org.eclipse.che.ide.ext.git.client.compare.ComparePresenter;
-import org.eclipse.che.ide.ext.git.client.compare.FileStatus;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
-
 import java.util.Collections;
 
 import static org.eclipse.che.api.git.shared.DiffRequest.DiffType.NAME_STATUS;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.compare.FileStatus.defineStatus;
 import static org.eclipse.che.ide.util.ExceptionUtils.getErrorCode;
@@ -57,7 +56,6 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
     private final GitLocalizationConstant locale;
     private final AppContext              appContext;
     private final NotificationManager     notificationManager;
-    private final String                  workspaceId;
 
     private ProjectConfigDto project;
     private Revision         selectedRevision;
@@ -82,8 +80,6 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
         this.selectionAgent = selectionAgent;
-        this.workspaceId = appContext.getWorkspaceId();
-
         this.view.setDelegate(this);
     }
 
@@ -142,7 +138,7 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
 
     /** Get list of revisions. */
     private void getRevisions() {
-        gitService.log(workspaceId, project, Collections.singletonList(selectedFile), false,
+        gitService.log(appContext.getDevMachine(), project, Collections.singletonList(selectedFile), false,
                        new AsyncRequestCallback<LogResponse>(dtoUnmarshallerFactory.newUnmarshaller(LogResponse.class)) {
 
                            @Override
@@ -158,7 +154,7 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
                                                                      locale.initCommitWasNotPerformed(),
                                                                      null).show();
                                } else {
-                                   notificationManager.notify(locale.logFailed(), FAIL, false);
+                                   notificationManager.notify(locale.logFailed(), FAIL, NOT_EMERGE_MODE);
                                }
 
                            }
@@ -175,7 +171,7 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
     }
 
     private void compare() {
-        gitService.diff(workspaceId, project, Collections.singletonList(selectedFile), NAME_STATUS, false, 0, selectedRevision.getId(),
+        gitService.diff(appContext.getDevMachine(), project, Collections.singletonList(selectedFile), NAME_STATUS, false, 0, selectedRevision.getId(),
                         false, new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                             @Override
                             protected void onSuccess(String result) {
@@ -196,7 +192,7 @@ public class RevisionListPresenter implements RevisionListView.ActionDelegate {
 
                             @Override
                             protected void onFailure(Throwable exception) {
-                                notificationManager.notify(locale.diffFailed(), FAIL, false);
+                                notificationManager.notify(locale.diffFailed(), FAIL, NOT_EMERGE_MODE);
                             }
                         });
     }

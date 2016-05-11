@@ -34,7 +34,7 @@ import org.eclipse.che.ide.api.project.wizard.ImportProjectNotificationSubscribe
 import org.eclipse.che.ide.api.project.wizard.ProjectNotificationSubscriber;
 import org.eclipse.che.ide.api.wizard.Wizard.CompleteCallback;
 import org.eclipse.che.ide.rest.RestContext;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.util.ExceptionUtils;
 import org.eclipse.che.security.oauth.OAuthStatus;
 
@@ -52,9 +52,10 @@ import static org.eclipse.che.api.git.shared.ProviderInfo.PROVIDER_NAME;
 @Singleton
 public class ProjectImporter extends AbstractImporter {
 
-    private final CoreLocalizationConstant    localizationConstant;
-    private final EventBus                    eventBus;
-    private final ProjectResolver             projectResolver;
+    private final CoreLocalizationConstant localizationConstant;
+    private final EventBus                 eventBus;
+    private final AppContext               appContext;
+    private final ProjectResolver projectResolver;
     private final DialogFactory               dialogFactory;
     private final String                      restContext;
     private final OAuth2AuthenticatorRegistry oAuth2AuthenticatorRegistry;
@@ -74,6 +75,7 @@ public class ProjectImporter extends AbstractImporter {
                            EventBus eventBus) {
         super(appContext, projectService, subscriberFactory);
         this.localizationConstant = localizationConstant;
+        this.appContext = appContext;
         this.projectResolver = projectResolver;
         this.dialogFactory = dialogFactory;
         this.restContext = restContext;
@@ -103,7 +105,7 @@ public class ProjectImporter extends AbstractImporter {
                                    @NotNull final SourceStorageDto sourceStorage) {
         final ProjectNotificationSubscriber subscriber = subscriberFactory.createSubscriber();
         subscriber.subscribe(projectName);
-        Promise<Void> importPromise = projectService.importProject(workspaceId, pathToProject, false, sourceStorage);
+        Promise<Void> importPromise = projectService.importProject(appContext.getDevMachine(), pathToProject, false, sourceStorage);
 
         importPromise.then(new Operation<Void>() {
             @Override
@@ -127,13 +129,19 @@ public class ProjectImporter extends AbstractImporter {
                     final Map<String, String> attributes = ExceptionUtils.getAttributes(exception.getCause());
                     final String providerName = attributes.get(PROVIDER_NAME);
                     final String authenticateUrl = attributes.get(AUTHENTICATE_URL);
+                    final boolean authenticated = Boolean.parseBoolean(attributes.get("authenticated"));
                     if (!Strings.isNullOrEmpty(providerName) && !Strings.isNullOrEmpty(authenticateUrl)) {
-                        tryAuthenticateRepeatImport(providerName,
-                                                    authenticateUrl,
-                                                    pathToProject,
-                                                    projectName,
-                                                    sourceStorage,
-                                                    subscriber);
+                        if (!authenticated) {
+                            tryAuthenticateRepeatImport(providerName,
+                                                        authenticateUrl,
+                                                        pathToProject,
+                                                        projectName,
+                                                        sourceStorage,
+                                                        subscriber);
+                        } else {
+                          dialogFactory.createMessageDialog(localizationConstant.importProjectSshKeyUploadFailedTitle(),
+                                                            localizationConstant.importProjectSshKeyUploadFailedText(), null).show();
+                        }
                     } else {
                         dialogFactory.createMessageDialog(localizationConstant.oauthFailedToGetAuthenticatorTitle(),
                                                           localizationConstant.oauthFailedToGetAuthenticatorText(), null).show();

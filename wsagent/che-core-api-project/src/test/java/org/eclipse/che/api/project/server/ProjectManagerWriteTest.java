@@ -16,12 +16,14 @@ import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.model.project.ProjectConfig;
 import org.eclipse.che.api.core.model.project.SourceStorage;
+import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.core.util.LineConsumerFactory;
 import org.eclipse.che.api.core.util.ValueHolder;
 import org.eclipse.che.api.project.server.importer.ProjectImporter;
 import org.eclipse.che.api.project.server.type.AttributeValue;
 import org.eclipse.che.api.project.server.type.BaseProjectType;
 import org.eclipse.che.api.project.server.type.ProjectTypeConstraintException;
+import org.eclipse.che.api.project.server.type.Variable;
 import org.eclipse.che.api.vfs.Path;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
@@ -61,6 +63,7 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
         projectTypeRegistry.registerProjectType(new PT3());
         projectTypeRegistry.registerProjectType(new PT4NoGen());
         projectTypeRegistry.registerProjectType(new M2());
+        projectTypeRegistry.registerProjectType(new PTsettableVP());
 
         projectHandlerRegistry.register(new PT3.SrcGenerator());
 
@@ -281,7 +284,7 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
         ProjectConfig pc = new NewProjectConfig("/testUpdateProject", BaseProjectType.ID, null, "name", "descr", null, null);
         RegisteredProject p = pm.createProject(pc, null);
 
-        assertEquals(BaseProjectType.ID , p.getType());
+        assertEquals(BaseProjectType.ID, p.getType());
         assertEquals("name", p.getName());
 
         attributes.put("pt2-var2", new AttributeValue("updated").getList());
@@ -384,6 +387,23 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
 
     }
 
+    @Test
+    public void testDeleteProjectEvent() throws Exception {
+
+        ProjectConfig pc = new NewProjectConfig("/testDeleteProject", BaseProjectType.ID, null, "name", "descr", null, null);
+        pm.createProject(pc, null);
+
+        String[] deletedPath = new String[1];
+        eventService.subscribe(new EventSubscriber<ProjectDeletedEvent>() {
+            @Override
+            public void onEvent(ProjectDeletedEvent event) {deletedPath[0] = event.getProjectPath();}
+        });
+        pm.delete("/testDeleteProject");
+
+        assertEquals("/testDeleteProject", deletedPath[0]);
+
+    }
+
 
     @Test
     public void testImportProject() throws Exception {
@@ -445,7 +465,6 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
     }
 
 
-
     @Test
     public void testProvidedAttributesNotSerialized() throws Exception {
 
@@ -491,6 +510,30 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
         assertEquals("/testDetectedProjectsNotSerialized2", persistedProjectConfig.getPath());
     }
 
+    @Test
+    public void testSettableValueProvider() throws Exception {
+
+        assertTrue(((Variable)projectTypeRegistry.getProjectType("settableVPPT").getAttribute("my")).isValueProvided());
+
+        ProjectConfig pc = new NewProjectConfig("/testSettableValueProvider", "settableVPPT", null, "", "", new HashMap<>(), null);
+
+        pm.createProject(pc, null);
+
+        RegisteredProject project = pm.getProject("/testSettableValueProvider");
+
+        assertEquals(1, project.getAttributes().size());
+        assertEquals("notset", project.getAttributes().get("my").get(0));
+
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("my", new AttributeValue("set").getList());
+        pc = new NewProjectConfig("/testSettableValueProvider", "settableVPPT", null, "", "", attributes, null);
+
+        pm.updateProject(pc);
+        project = pm.getProject("/testSettableValueProvider");
+        assertEquals("set", project.getAttributes().get("my").get(0));
+
+    }
+
      /* ---------------------------------- */
     /* private */
     /* ---------------------------------- */
@@ -530,13 +573,13 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
                 baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
+
             @Override
             public ImporterCategory getCategory() {
                 return ProjectImporter.ImporterCategory.ARCHIVE;
             }
         });
     }
-
 
 
 }

@@ -19,8 +19,8 @@ import org.eclipse.che.ide.api.action.ActionEvent;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.project.node.HasStorablePath;
 import org.eclipse.che.ide.project.node.ResourceBasedNode;
-import org.eclipse.che.ide.ui.dialogs.InputCallback;
-import org.eclipse.che.ide.ui.dialogs.input.InputDialog;
+import org.eclipse.che.ide.api.dialogs.InputCallback;
+import org.eclipse.che.ide.api.dialogs.InputDialog;
 
 /**
  * Action to create new folder.
@@ -66,6 +66,6 @@ public class NewFolderAction extends AbstractNewResourceAction {
 
         final String folderPath = ((HasStorablePath)parent).getStorablePath() + '/' + value;
 
-        projectServiceClient.createFolder(appContext.getWorkspace().getId(), folderPath, createCallback(parent));
+        projectServiceClient.createFolder(appContext.getDevMachine(), folderPath, createCallback(parent));
     }
 }

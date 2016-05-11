@@ -13,6 +13,7 @@ package org.eclipse.che.ide.part.explorer.project.synchronize;
 import com.google.gwtmockito.GwtMockitoTestRunner;
 import com.google.web.bindery.event.shared.EventBus;
 
+import org.eclipse.che.api.machine.gwt.client.DevMachine;
 import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
 import org.eclipse.che.api.project.shared.Constants;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
@@ -27,11 +28,11 @@ import org.eclipse.che.ide.project.node.ProjectNode;
 import org.eclipse.che.ide.projectimport.wizard.ProjectImporter;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
-import org.eclipse.che.ide.ui.dialogs.confirm.ConfirmDialog;
-import org.eclipse.che.ide.ui.dialogs.message.MessageDialog;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmDialog;
+import org.eclipse.che.ide.api.dialogs.MessageDialog;
 import org.eclipse.che.ide.ui.smartTree.event.BeforeExpandNodeEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,7 +65,10 @@ public class ProjectConfigSynchronizationListenerTest {
 
     //constructor mocks
     @Mock
-    private AppContext               appContext;
+    private AppContext appContext;
+    @Mock
+    private DevMachine devMachine;
+
     @Mock
     private DialogFactory            dialogFactory;
     @Mock
@@ -110,6 +114,7 @@ public class ProjectConfigSynchronizationListenerTest {
     @Before
     public void setUp() {
         when(appContext.getWorkspaceId()).thenReturn(WORKSPACE_ID);
+        when(appContext.getDevMachine()).thenReturn(devMachine);
         when(event.getNode()).thenReturn(projectNode);
         when(projectNode.getProjectConfig()).thenReturn(projectConfig);
 
@@ -142,7 +147,6 @@ public class ProjectConfigSynchronizationListenerTest {
 
     @Test
     public void constructorShouldBeInitialized() {
-        verify(appContext).getWorkspaceId();
         verify(eventBus).addHandler(BeforeExpandNodeEvent.getType(), listener);
     }
 
@@ -253,7 +257,7 @@ public class ProjectConfigSynchronizationListenerTest {
         cancelCaptor.getValue().cancelled();
 
         //noinspection unchecked
-        verify(projectService).delete(eq(WORKSPACE_ID), anyString(), Matchers.<AsyncRequestCallback>anyObject());
+        verify(projectService).delete(eq(devMachine), anyString(), Matchers.<AsyncRequestCallback>anyObject());
     }
 
     @Test
@@ -297,9 +301,11 @@ public class ProjectConfigSynchronizationListenerTest {
         cancelCaptor.getValue().cancelled();
 
         verify(projectConfig).setType(Constants.BLANK_ID);
+        verify(appContext).getDevMachine();
 
         //noinspection unchecked
-        verify(projectService).updateProject(eq(WORKSPACE_ID), anyString(), eq(projectConfig), Matchers.<AsyncRequestCallback>anyObject());
+
+        verify(projectService).updateProject(eq(devMachine), anyString(), eq(projectConfig), Matchers.<AsyncRequestCallback>anyObject());
     }
 
     @Test

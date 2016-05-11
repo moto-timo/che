@@ -34,6 +34,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
+import static org.eclipse.che.ide.ext.git.client.add.AddToIndexPresenter.ADD_TO_INDEX_COMMAND_NAME;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -45,7 +47,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.eclipse.che.ide.ext.git.client.add.AddToIndexPresenter.ADD_TO_INDEX_COMMAND_NAME;
 
 /**
  * Testing {@link AddToIndexPresenter} functionality.
@@ -90,7 +91,7 @@ public class AddToIndexPresenterTest extends BaseTest {
     public void testDialogWillNotBeShownWhenStatusRequestIsFailed() throws Exception {
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -100,7 +101,7 @@ public class AddToIndexPresenterTest extends BaseTest {
         verify(gitOutputConsoleFactory).create(ADD_TO_INDEX_COMMAND_NAME);
         verify(console).printError(anyString());
         verify(consolesPanelPresenter).addCommandOutput(anyString(), eq(console));
-        verify(notificationManager).notify(anyString(), anyObject(), eq(true), eq(rootProjectConfig));
+        verify(notificationManager).notify(anyString(), anyObject(), eq(FLOAT_MODE), eq(rootProjectConfig));
         verify(view, never()).showDialog();
         verify(constant, times(2)).statusFailed();
     }
@@ -111,7 +112,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -140,7 +141,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -169,7 +170,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -200,7 +201,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -244,7 +245,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         presenter.showDialog();
 
-        verify(service).status(anyString(), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
+        verify(service).status(eq(devMachine), eq(rootProjectConfig), asyncRequestCallbackStatusCaptor.capture());
         final AsyncRequestCallback<Status> callback = asyncRequestCallbackStatusCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -269,7 +270,7 @@ public class AddToIndexPresenterTest extends BaseTest {
         presenter.onAddClicked();
 
         verify(service)
-                .add(anyString(), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(), requestCallbackAddToIndexCaptor.capture());
+                .add(eq(devMachine), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(), requestCallbackAddToIndexCaptor.capture());
         RequestCallback<Void> callback = requestCallbackAddToIndexCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -278,7 +279,7 @@ public class AddToIndexPresenterTest extends BaseTest {
 
         verify(view).isUpdated();
         verify(view).close();
-        verify(service).add(anyString(), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(),
+        verify(service).add(eq(devMachine), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(),
                             (RequestCallback<Void>)anyObject());
         verify(gitOutputConsoleFactory, times(2)).create(ADD_TO_INDEX_COMMAND_NAME);
         verify(console).print(anyString());
@@ -297,7 +298,7 @@ public class AddToIndexPresenterTest extends BaseTest {
         presenter.onAddClicked();
 
         verify(service)
-                .add(anyString(), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(), requestCallbackAddToIndexCaptor.capture());
+                .add(eq(devMachine), eq(rootProjectConfig), eq(NEED_UPDATING), (List<String>)anyObject(), requestCallbackAddToIndexCaptor.capture());
         RequestCallback<Void> callback = requestCallbackAddToIndexCaptor.getValue();
 
         //noinspection NonJREEmulationClassesInClientCode
@@ -309,7 +310,7 @@ public class AddToIndexPresenterTest extends BaseTest {
         verify(gitOutputConsoleFactory, times(2)).create(ADD_TO_INDEX_COMMAND_NAME);
         verify(console).printError(anyString());
         verify(consolesPanelPresenter).addCommandOutput(anyString(), eq(console));
-        verify(notificationManager).notify(anyString(), anyObject(), eq(true), eq(rootProjectConfig));
+        verify(notificationManager).notify(anyString(), anyObject(), eq(FLOAT_MODE), eq(rootProjectConfig));
         verify(constant, times(2)).addFailed();
     }
 
@@ -318,19 +319,19 @@ public class AddToIndexPresenterTest extends BaseTest {
         reset(gitOutputConsoleFactory);
         when(gitOutputConsoleFactory.create(anyString())).thenReturn(console);
         doThrow(WebSocketException.class).when(service)
-                                         .add(anyString(), anyObject(), anyBoolean(), anyObject(), anyObject());
+                                         .add(devMachine, anyObject(), anyBoolean(), anyObject(), anyObject());
         when(view.isUpdated()).thenReturn(NEED_UPDATING);
 
         presenter.showDialog();
         presenter.onAddClicked();
 
         verify(view).isUpdated();
-        verify(service).add(anyString(), eq(rootProjectConfig), eq(NEED_UPDATING), anyObject(), anyObject());
+        verify(service).add(eq(devMachine), eq(rootProjectConfig), eq(NEED_UPDATING), anyObject(), anyObject());
         verify(view).close();
         verify(gitOutputConsoleFactory, times(2)).create(ADD_TO_INDEX_COMMAND_NAME);
         verify(console).printError(anyString());
         verify(consolesPanelPresenter).addCommandOutput(anyString(), eq(console));
-        verify(notificationManager).notify(anyString(), anyObject(), eq(true), eq(rootProjectConfig));
+        verify(notificationManager).notify(anyString(), anyObject(), eq(FLOAT_MODE), eq(rootProjectConfig));
         verify(constant, times(2)).addFailed();
     }
 

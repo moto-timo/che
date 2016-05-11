@@ -17,6 +17,7 @@ import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.model.project.ProjectConfig;
 import org.eclipse.che.api.core.model.workspace.Workspace;
 import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
+import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.project.server.handlers.ProjectHandlerRegistry;
 import org.eclipse.che.api.project.server.handlers.ProjectInitHandler;
 import org.eclipse.che.api.project.server.type.BaseProjectType;
@@ -32,7 +33,6 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +54,7 @@ public class ProjectRegistry {
     private final ProjectTypeRegistry            projectTypeRegistry;
     private final ProjectHandlerRegistry         handlers;
     private final FolderEntry                    root;
+    private final EventService eventService;
 
     private boolean initialized;
 
@@ -61,7 +62,9 @@ public class ProjectRegistry {
     public ProjectRegistry(WorkspaceHolder workspaceHolder,
                            VirtualFileSystemProvider vfsProvider,
                            ProjectTypeRegistry projectTypeRegistry,
-                           ProjectHandlerRegistry handlers) throws ServerException {
+                           ProjectHandlerRegistry handlers,
+                           EventService eventService) throws ServerException {
+        this.eventService = eventService;
         this.projects = new ConcurrentHashMap<>();
         this.workspaceHolder = workspaceHolder;
         this.vfs = vfsProvider.getVirtualFileSystem();
@@ -232,6 +235,7 @@ public class ProjectRegistry {
         getProjects(path).forEach(p -> Optional.ofNullable(projects.remove(p))
                                                .ifPresent(removed::add));
 
+        removed.forEach(registeredProject -> eventService.publish(new ProjectDeletedEvent(registeredProject.getPath())));
         workspaceHolder.removeProjects(removed);
     }
 

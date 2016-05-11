@@ -32,6 +32,7 @@ import org.eclipse.che.ide.util.loging.Log;
 
 import javax.validation.constraints.NotNull;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -87,13 +88,13 @@ public class InitRepositoryPresenter {
             @Override
             public void onFailure(Throwable caught) {
                 handleError(caught, console);
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
             }
 
             @Override
             public void onSuccess(Void result) {
                 console.print(constant.initSuccess());
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                 notificationManager.notify(constant.initSuccess(), currentProject.getRootProject());
                 getRootProject(currentProject.getRootProject());
             }
@@ -109,11 +110,11 @@ public class InitRepositoryPresenter {
     private void handleError(@NotNull Throwable e, GitOutputConsole console) {
         String errorMessage = (e.getMessage() != null && !e.getMessage().isEmpty()) ? e.getMessage() : constant.initFailed();
         console.printError(errorMessage);
-        notificationManager.notify(constant.initFailed(), FAIL, true, appContext.getCurrentProject().getRootProject());
+        notificationManager.notify(constant.initFailed(), FAIL, FLOAT_MODE, appContext.getCurrentProject().getRootProject());
     }
 
     private void getRootProject(final ProjectConfigDto projectConfig) {
-        projectService.getProject(appContext.getWorkspace().getId(),
+        projectService.getProject(appContext.getDevMachine(),
                                   projectConfig.getPath(),
                                   new AsyncRequestCallback<ProjectConfigDto>(dtoUnmarshaller.newUnmarshaller(ProjectConfigDto.class)) {
                                       @Override

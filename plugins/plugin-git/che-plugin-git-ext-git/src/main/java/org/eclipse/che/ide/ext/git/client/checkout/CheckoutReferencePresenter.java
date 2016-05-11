@@ -36,6 +36,7 @@ import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.Unmarshallable;
 import org.eclipse.che.ide.util.loging.Log;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -106,7 +107,7 @@ public class CheckoutReferencePresenter implements CheckoutReferenceView.ActionD
     public void onCheckoutClicked(final String reference) {
         view.close();
         final ProjectConfigDto project = appContext.getCurrentProject().getRootProject();
-        service.checkout(appContext.getWorkspaceId(),
+        service.checkout(appContext.getDevMachine(),
                          project,
                          dtoFactory.createDto(CheckoutRequest.class)
                                    .withName(reference)
@@ -118,7 +119,7 @@ public class CheckoutReferencePresenter implements CheckoutReferenceView.ActionD
                                  //so we must repeat the logic which is performed when we open a project
                                  Unmarshallable<ProjectConfigDto> unmarshaller =
                                          dtoUnmarshallerFactory.newUnmarshaller(ProjectConfigDto.class);
-                                 projectService.getProject(appContext.getWorkspace().getId(), project.getPath(),
+                                 projectService.getProject(appContext.getDevMachine(), project.getPath(),
                                                            new AsyncRequestCallback<ProjectConfigDto>(unmarshaller) {
                                                                @Override
                                                                protected void onSuccess(final ProjectConfigDto result) {
@@ -145,8 +146,8 @@ public class CheckoutReferencePresenter implements CheckoutReferenceView.ActionD
                                                              : constant.checkoutFailed();
                                  GitOutputConsole console = gitOutputConsoleFactory.create(CHECKOUT_COMMAND_NAME);
                                  console.printError(errorMessage);
-                                 consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                 notificationManager.notify(constant.checkoutFailed(), FAIL, true, project);
+                                 consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                 notificationManager.notify(constant.checkoutFailed(), FAIL, FLOAT_MODE, project);
                              }
                          }
                         );

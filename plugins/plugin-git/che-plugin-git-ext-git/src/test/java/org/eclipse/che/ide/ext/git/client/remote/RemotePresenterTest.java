@@ -14,6 +14,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.googlecode.gwt.test.utils.GwtReflectionUtils;
 
 import org.eclipse.che.api.git.shared.Remote;
+import org.eclipse.che.api.machine.gwt.client.DevMachine;
 import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.ide.api.event.project.ProjectUpdatedEvent;
@@ -33,6 +34,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
+import static org.eclipse.che.ide.ext.git.client.remote.RemotePresenter.REMOTE_REPO_COMMAND_NAME;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -43,7 +46,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.eclipse.che.ide.ext.git.client.remote.RemotePresenter.REMOTE_REPO_COMMAND_NAME;
 
 /**
  * Testing {@link RemotePresenter} functionality.
@@ -100,13 +102,13 @@ public class RemotePresenterTest extends BaseTest {
                 onSuccess.invoke(callback, remotes);
                 return callback;
             }
-        }).when(service).remoteList(anyString(), anyObject(), anyString(), anyBoolean(),
+        }).when(service).remoteList(devMachine, anyObject(), anyString(), anyBoolean(),
                                     (AsyncRequestCallback<List<Remote>>)anyObject());
 
         presenter.showDialog();
 
         verify(appContext).getCurrentProject();
-        verify(service).remoteList(anyString(), eq(rootProjectConfig), anyString(), eq(SHOW_ALL_INFORMATION),
+        verify(service).remoteList(eq(devMachine), eq(rootProjectConfig), anyString(), eq(SHOW_ALL_INFORMATION),
                                    (AsyncRequestCallback<List<Remote>>)anyObject());
         verify(view).setEnableDeleteButton(eq(DISABLE_BUTTON));
         verify(view).setRemotes((List<Remote>)anyObject());
@@ -124,13 +126,13 @@ public class RemotePresenterTest extends BaseTest {
                 onFailure.invoke(callback, mock(Throwable.class));
                 return callback;
             }
-        }).when(service).remoteList(anyString(), anyObject(), anyString(), anyBoolean(),
+        }).when(service).remoteList(devMachine, anyObject(), anyString(), anyBoolean(),
                                     (AsyncRequestCallback<List<Remote>>)anyObject());
 
         presenter.showDialog();
 
         verify(appContext).getCurrentProject();
-        verify(service).remoteList(anyString(), eq(rootProjectConfig), anyString(), eq(SHOW_ALL_INFORMATION),
+        verify(service).remoteList(eq(devMachine), eq(rootProjectConfig), anyString(), eq(SHOW_ALL_INFORMATION),
                                    (AsyncRequestCallback<List<Remote>>)anyObject());
         verify(constant).remoteListFailed();
     }
@@ -159,11 +161,11 @@ public class RemotePresenterTest extends BaseTest {
         AsyncRequestCallback<ProjectConfigDto> getProjectCallback = getProjectCallbackCaptor.getValue();
         org.eclipse.che.test.GwtReflectionUtils.callOnSuccess(getProjectCallback, PROJECT_PATH);
 
-        verify(service).remoteList(anyString(), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
+        verify(service).remoteList(eq(devMachine), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
                                    (AsyncRequestCallback<List<Remote>>)anyObject());
         verify(console, never()).printError(anyString());
         verify(notificationManager, never()).notify(anyString(), eq(rootProjectConfig));
-        verify(projectService).getProject(anyString(), anyString(), anyObject());
+        verify(projectService).getProject(mock(DevMachine.class), anyString(), anyObject());
         verify(eventBus).fireEvent(Matchers.<ProjectUpdatedEvent>anyObject());
     }
 
@@ -184,13 +186,13 @@ public class RemotePresenterTest extends BaseTest {
         AsyncRequestCallback<ProjectConfigDto> getProjectCallback = getProjectCallbackCaptor.getValue();
         org.eclipse.che.test.GwtReflectionUtils.callOnFailure(getProjectCallback, mock(Throwable.class));
 
-        verify(service, never()).remoteList(anyString(), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
+        verify(service, never()).remoteList(eq(devMachine), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
                                             (AsyncRequestCallback<List<Remote>>)anyObject());
         verify(gitOutputConsoleFactory).create(REMOTE_REPO_COMMAND_NAME);
         verify(console).printError(anyString());
         verify(consolesPanelPresenter).addCommandOutput(anyString(), eq(console));
         verify(notificationManager, never()).notify(anyString(), eq(rootProjectConfig));
-        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(true), eq(rootProjectConfig));
+        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(FLOAT_MODE), eq(rootProjectConfig));
         verify(constant).remoteAddFailed();
     }
 
@@ -205,7 +207,7 @@ public class RemotePresenterTest extends BaseTest {
                 onSuccess.invoke(callback, EMPTY_TEXT);
                 return callback;
             }
-        }).when(service).remoteDelete(anyString(), anyObject(), anyString(), (AsyncRequestCallback<String>)anyObject());
+        }).when(service).remoteDelete(devMachine, anyObject(), anyString(), (AsyncRequestCallback<String>)anyObject());
 
         presenter.showDialog();
         presenter.onRemoteSelected(selectedRemote);
@@ -214,10 +216,10 @@ public class RemotePresenterTest extends BaseTest {
         AsyncRequestCallback<ProjectConfigDto> getProjectCallback = getProjectCallbackCaptor.getValue();
         org.eclipse.che.test.GwtReflectionUtils.callOnSuccess(getProjectCallback, PROJECT_PATH);
 
-        verify(service).remoteDelete(anyString(), eq(rootProjectConfig), eq(REPOSITORY_NAME), (AsyncRequestCallback<String>)anyObject());
-        verify(service, times(2)).remoteList(anyString(), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
+        verify(service).remoteDelete(eq(devMachine), eq(rootProjectConfig), eq(REPOSITORY_NAME), (AsyncRequestCallback<String>)anyObject());
+        verify(service, times(2)).remoteList(eq(devMachine), anyObject(), anyString(), eq(SHOW_ALL_INFORMATION),
                                              (AsyncRequestCallback<List<Remote>>)anyObject());
-        verify(projectService).getProject(anyString(), anyString(), anyObject());
+        verify(projectService).getProject(mock(DevMachine.class), anyString(), anyObject());
         verify(eventBus).fireEvent(Matchers.<ProjectUpdatedEvent>anyObject());
     }
 
@@ -232,7 +234,7 @@ public class RemotePresenterTest extends BaseTest {
                 onFailure.invoke(callback, mock(Throwable.class));
                 return callback;
             }
-        }).when(service).remoteDelete(anyString(), anyObject(), anyString(), (AsyncRequestCallback<String>)anyObject());
+        }).when(service).remoteDelete(devMachine, anyObject(), anyString(), (AsyncRequestCallback<String>)anyObject());
 
         presenter.showDialog();
         presenter.onRemoteSelected(selectedRemote);
@@ -241,13 +243,13 @@ public class RemotePresenterTest extends BaseTest {
         AsyncRequestCallback<ProjectConfigDto> getProjectCallback = getProjectCallbackCaptor.getValue();
         org.eclipse.che.test.GwtReflectionUtils.callOnFailure(getProjectCallback, mock(Throwable.class));
 
-        verify(service).remoteDelete(anyString(), eq(rootProjectConfig), eq(REPOSITORY_NAME), (AsyncRequestCallback<String>)anyObject());
+        verify(service).remoteDelete(eq(devMachine), eq(rootProjectConfig), eq(REPOSITORY_NAME), (AsyncRequestCallback<String>)anyObject());
         verify(constant).remoteDeleteFailed();
         verify(gitOutputConsoleFactory).create(REMOTE_REPO_COMMAND_NAME);
         verify(console).printError(anyString());
         verify(consolesPanelPresenter).addCommandOutput(anyString(), eq(console));
         verify(notificationManager, never()).notify(anyString(), eq(rootProjectConfig));
-        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(true), eq(rootProjectConfig));
+        verify(notificationManager).notify(anyString(), eq(StatusNotification.Status.FAIL), eq(FLOAT_MODE), eq(rootProjectConfig));
     }
 
     @Test

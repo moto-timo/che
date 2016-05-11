@@ -12,9 +12,9 @@ package org.eclipse.che.ide.upload.folder;
 
 import com.google.gwt.user.client.ui.FormPanel;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.google.web.bindery.event.shared.EventBus;
 
+import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.CoreLocalizationConstant;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.editor.EditorAgent;
@@ -25,11 +25,11 @@ import org.eclipse.che.ide.api.project.node.HasStorablePath;
 import org.eclipse.che.ide.api.project.node.Node;
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
 import org.eclipse.che.ide.project.node.ResourceBasedNode;
-
-import org.eclipse.che.commons.annotation.Nullable;
+import org.eclipse.che.ide.upload.BasicUploadPresenter;
 
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -37,35 +37,33 @@ import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAI
  *
  * @author Roman Nikitenko.
  */
-public class UploadFolderFromZipPresenter implements UploadFolderFromZipView.ActionDelegate {
+public class UploadFolderFromZipPresenter extends BasicUploadPresenter implements UploadFolderFromZipView.ActionDelegate {
 
-    private       UploadFolderFromZipView  view;
+    private final UploadFolderFromZipView  view;
     private final ProjectExplorerPresenter projectExplorer;
     private final CoreLocalizationConstant locale;
-    private       EditorAgent              editorAgent;
-    private       String                   restContext;
-    private       String                   workspaceId;
-    private       EventBus                 eventBus;
-    private       NotificationManager      notificationManager;
+    private final EditorAgent              editorAgent;
+    private final EventBus                 eventBus;
+    private final NotificationManager      notificationManager;
+    private final AppContext               appContext;
 
     @Inject
     public UploadFolderFromZipPresenter(UploadFolderFromZipView view,
-                                        @Named("cheExtensionPath") String restContext,
                                         AppContext appContext,
                                         EditorAgent editorAgent,
                                         EventBus eventBus,
                                         NotificationManager notificationManager,
                                         ProjectExplorerPresenter projectExplorer,
                                         CoreLocalizationConstant locale) {
-        this.restContext = restContext;
-        this.workspaceId = appContext.getWorkspace().getId();
+        super(projectExplorer);
+        this.appContext = appContext;
         this.editorAgent = editorAgent;
         this.eventBus = eventBus;
         this.view = view;
-        this.projectExplorer = projectExplorer;
-        this.locale = locale;
         this.view.setDelegate(this);
         this.view.setEnabledUploadButton(false);
+        this.projectExplorer = projectExplorer;
+        this.locale = locale;
         this.notificationManager = notificationManager;
     }
 
@@ -88,7 +86,7 @@ public class UploadFolderFromZipPresenter implements UploadFolderFromZipView.Act
 
         if (result != null && !result.isEmpty()) {
             view.closeDialog();
-            notificationManager.notify(locale.failedToUploadFilesFromZip(), parseMessage(result), FAIL, true);
+            notificationManager.notify(locale.failedToUploadFilesFromZip(), parseMessage(result), FAIL, FLOAT_MODE);
             return;
         }
 
@@ -103,7 +101,7 @@ public class UploadFolderFromZipPresenter implements UploadFolderFromZipView.Act
     public void onUploadClicked() {
         view.setLoaderVisibility(true);
         view.setEncoding(FormPanel.ENCODING_MULTIPART);
-        view.setAction(restContext + "/project/" + workspaceId + "/upload/zipfolder/" +
+        view.setAction(appContext.getDevMachine().getWsAgentBaseUrl() + "/project/" + appContext.getDevMachine().getWorkspace() + "/upload/zipfolder/" +
                        ((HasStorablePath)getResourceBasedNode()).getStorablePath());
         view.submit();
     }
@@ -114,48 +112,6 @@ public class UploadFolderFromZipPresenter implements UploadFolderFromZipView.Act
         String fileName = view.getFileName();
         boolean enabled = !fileName.isEmpty() && fileName.contains(".zip");
         view.setEnabledUploadButton(enabled);
-    }
-
-    protected ResourceBasedNode<?> getResourceBasedNode() {
-        List<?> selection = projectExplorer.getSelection().getAllElements();
-        //we should be sure that user selected single element to work with it
-        if (selection != null && selection.isEmpty() || selection.size() > 1) {
-            return null;
-        }
-
-        Object o = selection.get(0);
-
-        if (o instanceof ResourceBasedNode<?>) {
-            ResourceBasedNode<?> node = (ResourceBasedNode<?>)o;
-            //it may be file node, so we should take parent node
-            if (node.isLeaf() && isResourceAndStorableNode(node.getParent())) {
-                return (ResourceBasedNode<?>)node.getParent();
-            }
-
-            return isResourceAndStorableNode(node) ? node : null;
-        }
-
-        return null;
-    }
-
-    protected boolean isResourceAndStorableNode(@Nullable Node node) {
-        return node != null && node instanceof ResourceBasedNode<?> && node instanceof HasStorablePath;
-    }
-
-    private String parseMessage(String message) {
-        int startIndex = 0;
-        int endIndex = -1;
-
-        if (message.contains("<pre>message:")) {
-            startIndex = message.indexOf("<pre>message:") + "<pre>message:".length();
-        } else if (message.contains("<pre>")) {
-            startIndex = message.indexOf("<pre>") + "<pre>".length();
-        }
-
-        if (message.contains("</pre>")) {
-            endIndex = message.indexOf("</pre>");
-        }
-        return (endIndex != -1) ? message.substring(startIndex, endIndex) : message.substring(startIndex);
     }
 
     private void updateOpenedEditors() {

@@ -29,10 +29,11 @@ import org.eclipse.che.ide.ext.git.client.outputconsole.GitOutputConsoleFactory;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.history.HistoryPresenter.LOG_COMMAND_NAME;
 import static org.eclipse.che.ide.util.ExceptionUtils.getErrorCode;
@@ -56,7 +57,6 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
     private final GitLocalizationConstant constant;
     private final NotificationManager     notificationManager;
     private final EventBus                eventBus;
-    private final String                  workspaceId;
 
     private Revision                  selectedRevision;
 
@@ -82,14 +82,13 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
         this.appContext = appContext;
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /**
      * Show dialog.
      */
     public void showDialog() {
-        service.log(workspaceId, appContext.getCurrentProject().getRootProject(), null, false,
+        service.log(appContext.getDevMachine(), appContext.getCurrentProject().getRootProject(), null, false,
                     new AsyncRequestCallback<LogResponse>(dtoUnmarshallerFactory.newUnmarshaller(LogResponse.class)) {
                         @Override
                         protected void onSuccess(LogResponse result) {
@@ -110,8 +109,8 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
                             String errorMessage = (exception.getMessage() != null) ? exception.getMessage() : constant.logFailed();
                             GitOutputConsole console = gitOutputConsoleFactory.create(LOG_COMMAND_NAME);
                             console.printError(errorMessage);
-                            consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                            notificationManager.notify(constant.logFailed(), FAIL, true, appContext.getCurrentProject().getRootProject());
+                            consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                            notificationManager.notify(constant.logFailed(), FAIL, FLOAT_MODE, appContext.getCurrentProject().getRootProject());
                         }
                     }
                    );
@@ -154,7 +153,7 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
         final ResetRequest.ResetType finalType = type;
         final ProjectConfigDto project = appContext.getCurrentProject().getRootProject();
         final GitOutputConsole console = gitOutputConsoleFactory.create(RESET_COMMAND_NAME);
-        service.reset(workspaceId, project, selectedRevision.getId(), finalType, null,
+        service.reset(appContext.getDevMachine(), project, selectedRevision.getId(), finalType, null,
                       new AsyncRequestCallback<Void>() {
                           @Override
                           protected void onSuccess(Void result) {
@@ -167,7 +166,7 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
                                   eventBus.fireEvent(new OpenProjectEvent(project));
                               }
                               console.print(constant.resetSuccessfully());
-                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
                               notificationManager.notify(constant.resetSuccessfully(), project);
 
                           }
@@ -176,8 +175,8 @@ public class ResetToCommitPresenter implements ResetToCommitView.ActionDelegate 
                           protected void onFailure(Throwable exception) {
                               String errorMessage = (exception.getMessage() != null) ? exception.getMessage() : constant.resetFail();
                               console.printError(errorMessage);
-                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                              notificationManager.notify(constant.resetFail(), FAIL, true, project);
+                              consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                              notificationManager.notify(constant.resetFail(), FAIL, FLOAT_MODE, project);
                           }
                       });
     }

@@ -22,8 +22,8 @@ import org.eclipse.che.ide.api.filetypes.FileTypeRegistry;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.parts.WorkspaceAgent;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
-import org.eclipse.che.ide.debug.Breakpoint;
-import org.eclipse.che.ide.debug.BreakpointManager;
+import org.eclipse.che.ide.api.debug.Breakpoint;
+import org.eclipse.che.ide.api.debug.BreakpointManager;
 import org.eclipse.che.ide.debug.Debugger;
 import org.eclipse.che.ide.debug.DebuggerDescriptor;
 import org.eclipse.che.ide.debug.DebuggerManager;
@@ -42,9 +42,10 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
@@ -125,7 +126,7 @@ public class DebuggerPresenterTest extends BaseTest {
         presenter.onSelectedVariableElement(selectedVariable);
 
         FileType fileType = mock(FileType.class);
-        doReturn(Collections.singletonList("application/java")).when(fileType).getMimeTypes();
+        doReturn("java").when(fileType).getExtension();
         doReturn(fileType).when(fileTypeRegistry).getFileTypeByFile(eq(file));
     }
 
@@ -172,7 +173,7 @@ public class DebuggerPresenterTest extends BaseTest {
 
         verify(promiseString).catchError(operationPromiseErrorCaptor.capture());
         operationPromiseErrorCaptor.getValue().apply(promiseError);
-        notificationManager.notify(any(), eq(ERROR_MESSAGE), eq(FAIL), eq(true));
+        notificationManager.notify(any(), eq(ERROR_MESSAGE), eq(FAIL), eq(FLOAT_MODE));
         verify(constant).failedToGetVariableValueTitle();
     }
 
@@ -194,7 +195,7 @@ public class DebuggerPresenterTest extends BaseTest {
         doReturn(title).when(this.constant).debuggerConnectingTitle(address);
 
         presenter.onDebuggerAttached(debuggerDescriptor, promiseVoid);
-        notificationManager.notify(eq(address), eq(PROGRESS), eq(true));
+        notificationManager.notify(eq(address), eq(PROGRESS), eq(FLOAT_MODE));
     }
 
     @Test
@@ -206,7 +207,7 @@ public class DebuggerPresenterTest extends BaseTest {
         doReturn(description).when(this.constant).debuggerDisconnectedDescription(address);
 
         presenter.onDebuggerDisconnected();
-        notificationManager.notify(eq(title), eq(description), eq(SUCCESS), eq(false));
+        notificationManager.notify(eq(title), eq(description), eq(SUCCESS), eq(NOT_EMERGE_MODE));
     }
 
     @Test

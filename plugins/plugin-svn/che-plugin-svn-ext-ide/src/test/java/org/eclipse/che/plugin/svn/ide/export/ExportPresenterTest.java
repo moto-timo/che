@@ -12,7 +12,7 @@ package org.eclipse.che.plugin.svn.ide.export;
 
 import org.eclipse.che.ide.api.project.node.HasStorablePath;
 import org.eclipse.che.plugin.svn.ide.common.BaseSubversionPresenterTest;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -38,7 +38,7 @@ public class ExportPresenterTest extends BaseSubversionPresenterTest {
     public void setUp() throws Exception {
         super.setUp();
 
-        presenter = new ExportPresenter(null, appContext, subversionOutputConsoleFactory, consolesPanelPresenter, projectExplorerPart,
+        presenter = new ExportPresenter(appContext, subversionOutputConsoleFactory, consolesPanelPresenter, projectExplorerPart,
                                         exportView, dtoUnmarshallerFactory, service, notificationManager, constants, statusColors);
     }
 

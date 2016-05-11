@@ -27,6 +27,7 @@ import org.eclipse.che.ide.api.editor.EditorInput;
 import org.eclipse.che.ide.api.editor.EditorPartPresenter;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.notification.StatusNotification;
+import org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
 import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.ext.java.client.JavaLocalizationConstant;
@@ -48,12 +49,12 @@ import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RefactoringStatus;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RefactoringStatusEntry;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RenameRefactoringSession;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RenameSettings;
-import org.eclipse.che.ide.jseditor.client.texteditor.TextEditor;
+import org.eclipse.che.ide.api.editor.texteditor.TextEditor;
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
-import org.eclipse.che.ide.ui.dialogs.confirm.ConfirmDialog;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.ConfirmDialog;
 import org.eclipse.che.ide.ui.loaders.request.LoaderFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -229,7 +230,7 @@ public class RenamePresenterTest {
         verify(refactorService).createRenameRefactoring(createRenameRefactoringDto);
         verify(renameRefactoringSessionPromise).catchError(promiseErrorCaptor.capture());
         promiseErrorCaptor.getValue().apply(promiseError);
-        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), anyBoolean());
+        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), any(DisplayMode.class));
     }
 
     @Test
@@ -510,7 +511,7 @@ public class RenamePresenterTest {
         verify(changeCreationResultPromise).catchError(promiseErrorCaptor.capture());
         promiseErrorCaptor.getValue().apply(promiseError);
         verify(promiseError).getMessage();
-        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), anyBoolean());
+        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), any(DisplayMode.class));
     }
 
     @Test
@@ -635,7 +636,7 @@ public class RenamePresenterTest {
         verify(changeCreationResultPromise).catchError(promiseErrorCaptor.capture());
         promiseErrorCaptor.getValue().apply(promiseError);
         verify(promiseError).getMessage();
-        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), anyBoolean());
+        verify(notificationManager).notify(anyString(), anyString(), any(StatusNotification.Status.class), any(DisplayMode.class));
     }
 
     @Test

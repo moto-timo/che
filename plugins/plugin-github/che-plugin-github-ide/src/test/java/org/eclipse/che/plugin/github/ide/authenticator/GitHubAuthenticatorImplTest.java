@@ -27,9 +27,9 @@ import org.eclipse.che.ide.ext.git.ssh.client.GitSshKeyUploaderRegistry;
 import org.eclipse.che.ide.ext.git.ssh.client.SshKeyUploader;
 import org.eclipse.che.ide.ext.git.ssh.client.manage.SshKeyManagerPresenter;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
-import org.eclipse.che.ide.ui.dialogs.message.MessageDialog;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.MessageDialog;
 import org.eclipse.che.plugin.github.ide.GitHubLocalizationConstant;
 import org.eclipse.che.security.oauth.OAuthStatus;
 import org.junit.Before;
@@ -46,6 +46,7 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -208,7 +209,7 @@ public class GitHubAuthenticatorImplTest {
         verify(view).isGenerateKeysSelected();
         verify(registry).getUploader(eq(GITHUB_HOST));
         verify(appContext).getCurrentUser();
-        verify(notificationManager).notify(anyString(), eq(SUCCESS), eq(true));
+        verify(notificationManager).notify(anyString(), eq(SUCCESS), eq(FLOAT_MODE));
     }
 
     @Test

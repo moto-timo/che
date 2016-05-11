@@ -13,7 +13,6 @@ package org.eclipse.che.plugin.svn.ide.export;
 import com.google.gwt.user.client.Window;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.notification.NotificationManager;
@@ -34,6 +33,7 @@ import java.util.List;
 
 import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
@@ -46,18 +46,17 @@ import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUC
 @Singleton
 public class ExportPresenter extends SubversionActionPresenter implements ExportView.ActionDelegate {
 
-    private       ExportView                               view;
+    private final AppContext appContext;
+    private final ExportView view;
     private final DtoUnmarshallerFactory                   dtoUnmarshallerFactory;
     private final SubversionClientService                  subversionClientService;
-    private       NotificationManager                      notificationManager;
-    private       SubversionExtensionLocalizationConstants constants;
-    private final String                                   baseHttpUrl;
+    private final NotificationManager                      notificationManager;
+    private final SubversionExtensionLocalizationConstants constants;
 
     private HasStorablePath selectedNode;
 
     @Inject
-    public ExportPresenter(@Named("cheExtensionPath") String extPath,
-                           AppContext appContext,
+    public ExportPresenter(AppContext appContext,
                            SubversionOutputConsoleFactory consoleFactory,
                            ConsolesPanelPresenter consolesPanelPresenter,
                            ProjectExplorerPresenter projectExplorerPart,
@@ -68,6 +67,7 @@ public class ExportPresenter extends SubversionActionPresenter implements Export
                            SubversionExtensionLocalizationConstants constants,
                            final StatusColors statusColors) {
         super(appContext, consoleFactory, consolesPanelPresenter, projectExplorerPart, statusColors);
+        this.appContext = appContext;
         this.view = view;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
         this.subversionClientService = subversionClientService;
@@ -75,7 +75,7 @@ public class ExportPresenter extends SubversionActionPresenter implements Export
         this.constants = constants;
         this.view.setDelegate(this);
 
-        this.baseHttpUrl = extPath + "/svn/" + appContext.getWorkspaceId();
+
     }
 
     public void showExport(HasStorablePath selectedNode) {
@@ -96,7 +96,7 @@ public class ExportPresenter extends SubversionActionPresenter implements Export
         final String projectPath = getCurrentProjectPath();
 
         if (projectPath == null) {
-            notificationManager.notify(constants.exportFailedNoProjectPath(), FAIL, true);
+            notificationManager.notify(constants.exportFailedNoProjectPath(), FAIL, FLOAT_MODE);
             return;
         }
 
@@ -104,7 +104,7 @@ public class ExportPresenter extends SubversionActionPresenter implements Export
         final String exportPath = (nullableExportPath != null ? nullableExportPath : ".");
         final String givenRevision = view.isRevisionSpecified() ? view.getRevision() : null;
 
-        final StatusNotification notification = new StatusNotification(constants.exportStarted(exportPath), PROGRESS, true);
+        final StatusNotification notification = new StatusNotification(constants.exportStarted(exportPath), PROGRESS, FLOAT_MODE);
         notificationManager.notify(notification);
 
         view.onClose();
@@ -166,8 +166,8 @@ public class ExportPresenter extends SubversionActionPresenter implements Export
 
     private void openExportPopup(final String projectPath, final String exportPath, final String revision,
                                  final StatusNotification notification) {
-        final StringBuilder url = new StringBuilder(baseHttpUrl + "/export" + projectPath);
-
+        final StringBuilder url = new StringBuilder(appContext.getDevMachine().getWsAgentBaseUrl() + "/svn/"
+                                                    + appContext.getWorkspaceId() + "/export" + projectPath);
         char separator = '?';
         if (!".".equals(exportPath)) {
             url.append(separator).append("path").append('=').append(exportPath);

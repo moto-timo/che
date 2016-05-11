@@ -21,15 +21,15 @@ import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.editor.EditorPartPresenter;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
-import org.eclipse.che.ide.api.texteditor.HandlesUndoRedo;
-import org.eclipse.che.ide.api.texteditor.UndoableEditor;
+import org.eclipse.che.ide.api.editor.texteditor.HandlesUndoRedo;
+import org.eclipse.che.ide.api.editor.texteditor.UndoableEditor;
 import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.ext.java.client.JavaLocalizationConstant;
 import org.eclipse.che.ide.ext.java.client.editor.JavaCodeAssistClient;
 import org.eclipse.che.ide.ext.java.client.projecttree.JavaSourceFolderUtil;
 import org.eclipse.che.ide.ext.java.shared.dto.ConflictImportDTO;
-import org.eclipse.che.ide.jseditor.client.document.Document;
-import org.eclipse.che.ide.jseditor.client.texteditor.TextEditor;
+import org.eclipse.che.ide.api.editor.document.Document;
+import org.eclipse.che.ide.api.editor.texteditor.TextEditor;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
 import org.eclipse.che.ide.util.loging.Log;
@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -112,7 +113,7 @@ public class OrganizeImportsPresenter implements OrganizeImportsView.ActionDeleg
                             .catchError(new Operation<PromiseError>() {
                                 @Override
                                 public void apply(PromiseError arg) throws OperationException {
-                                    notificationManager.notify(locale.failedToProcessOrganizeImports(), arg.getMessage(), FAIL, true);
+                                    notificationManager.notify(locale.failedToProcessOrganizeImports(), arg.getMessage(), FAIL, FLOAT_MODE);
                                 }
                             });
     }
@@ -161,7 +162,7 @@ public class OrganizeImportsPresenter implements OrganizeImportsView.ActionDeleg
                             .catchError(new Operation<PromiseError>() {
                                 @Override
                                 public void apply(PromiseError arg) throws OperationException {
-                                    notificationManager.notify(locale.failedToProcessOrganizeImports(), arg.getMessage(), FAIL, true);
+                                    notificationManager.notify(locale.failedToProcessOrganizeImports(), arg.getMessage(), FAIL, FLOAT_MODE);
                                 }
                             });
     }
@@ -218,7 +219,7 @@ public class OrganizeImportsPresenter implements OrganizeImportsView.ActionDeleg
     }
 
     private void replaceContent(VirtualFile file, final Document document) {
-        projectService.getFileContent(appContext.getWorkspaceId(),
+        projectService.getFileContent(appContext.getDevMachine(),
                                       file.getPath(),
                                       new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                                           @Override

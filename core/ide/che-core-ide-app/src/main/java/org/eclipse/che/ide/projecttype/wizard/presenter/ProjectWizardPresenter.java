@@ -16,8 +16,8 @@ import com.google.inject.Singleton;
 
 import org.eclipse.che.api.project.shared.dto.AttributeDto;
 import org.eclipse.che.api.project.shared.dto.ItemReference;
-import org.eclipse.che.api.project.shared.dto.ProjectTemplateDescriptor;
 import org.eclipse.che.api.project.shared.dto.ProjectTypeDto;
+import org.eclipse.che.api.project.templates.shared.dto.ProjectTemplateDescriptor;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
 import org.eclipse.che.commons.annotation.Nullable;
@@ -30,7 +30,7 @@ import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.projecttype.wizard.ProjectWizard;
 import org.eclipse.che.ide.projecttype.wizard.ProjectWizardFactory;
 import org.eclipse.che.ide.projecttype.wizard.categoriespage.CategoriesPagePresenter;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.Collections;
@@ -55,7 +55,6 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
                                                ProjectWizardView.ActionDelegate,
                                                CategoriesPagePresenter.ProjectTypeSelectionListener,
                                                CategoriesPagePresenter.ProjectTemplateSelectionListener {
-
     private final ProjectWizardView                  view;
     private final DtoFactory                         dtoFactory;
     private final DialogFactory                      dialogFactory;
@@ -63,14 +62,14 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
     private final ProjectWizardRegistry              wizardRegistry;
     private final Provider<CategoriesPagePresenter>  categoriesPageProvider;
     private final Map<ProjectTypeDto, ProjectWizard> wizardsCache;
-    private       CategoriesPagePresenter            categoriesPage;
-    private       ProjectWizard                      wizard;
-    private       ProjectWizard                      importWizard;
-    private       WizardPage                         currentPage;
 
-    private ProjectWizardMode wizardMode;
     /** Contains project's path when project wizard opened for updating project. */
-    private String            projectPath;
+    private String                  projectPath;
+    private ProjectWizardMode       wizardMode;
+    private CategoriesPagePresenter categoriesPage;
+    private ProjectWizard           wizard;
+    private ProjectWizard           importWizard;
+    private WizardPage              currentPage;
 
     @Inject
     public ProjectWizardPresenter(ProjectWizardView view,
@@ -80,13 +79,13 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
                                   ProjectWizardRegistry wizardRegistry,
                                   Provider<CategoriesPagePresenter> categoriesPageProvider) {
         this.view = view;
+        this.view.setDelegate(this);
         this.dtoFactory = dtoFactory;
         this.dialogFactory = dialogFactory;
         this.projectWizardFactory = projectWizardFactory;
         this.wizardRegistry = wizardRegistry;
         this.categoriesPageProvider = categoriesPageProvider;
-        wizardsCache = new HashMap<>();
-        view.setDelegate(this);
+        this.wizardsCache = new HashMap<>();
     }
 
     @Override
@@ -107,6 +106,8 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
 
     @Override
     public void onSaveClicked() {
+        categoriesPage.saveChanges();
+
         view.setLoaderVisibility(true);
         wizard.complete(new Wizard.CompleteCallback() {
             @Override
@@ -118,13 +119,20 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
             public void onFailure(Throwable e) {
                 view.setLoaderVisibility(false);
                 dialogFactory.createMessageDialog("", e.getMessage(), null).show();
+
+                categoriesPage.revertChanges();
             }
         });
     }
 
     @Override
     public void onCancelClicked() {
-        view.close();
+        view.closeAndRevertChanges();
+    }
+
+    @Override
+    public void onChangesRevert() {
+        categoriesPage.revertChanges();
     }
 
     @Override
@@ -201,7 +209,7 @@ public class ProjectWizardPresenter implements Wizard.UpdateDelegate,
             Map<String, List<String>> prevDataAttributes = prevData.getAttributes();
             Map<String, List<String>> newAttributes = new HashMap<>();
             for (AttributeDto attribute : attributes) {
-                if(prevDataAttributes.containsKey(attribute.getId())) {
+                if (prevDataAttributes.containsKey(attribute.getId())) {
                     newAttributes.put(attribute.getId(), prevDataAttributes.get(attribute.getId()));
                 }
             }

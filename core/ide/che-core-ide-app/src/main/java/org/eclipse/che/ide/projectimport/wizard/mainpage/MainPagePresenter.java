@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -180,11 +181,11 @@ public class MainPagePresenter extends AbstractWizardPage<ProjectConfigDto> impl
                     }
                     @Override
                     protected void onFailure(Throwable exception) {
-                        notificationManager.notify(locale.failedToImportProject(), FAIL, true);
+                        notificationManager.notify(locale.failedToImportProject(), FAIL, FLOAT_MODE);
                     }
                 };
 
-        projectImportersService.getProjectImporters(appContext.getWorkspace().getId(), callback);
+        projectImportersService.getProjectImporters(appContext.getDevMachine(), callback);
     }
 
     /** {@inheritDoc} */

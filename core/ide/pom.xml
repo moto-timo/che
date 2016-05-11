@@ -16,7 +16,7 @@
     <parent>
         <artifactId>che-core-parent</artifactId>
         <groupId>org.eclipse.che.core</groupId>
-        <version>4.2.0-RC1-SNAPSHOT</version>
+        <version>4.3.0-RC1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>che-core-ide-parent</artifactId>
@@ -27,7 +27,6 @@
         <module>che-core-ide-generators</module>
         <module>che-core-ide-ui</module>
         <module>che-core-ide-app</module>
-        <module>che-core-ide-jseditor</module>
         <module>che-core-ide-templates</module>
         <module>che-core-ide-stacks</module>
     </modules>

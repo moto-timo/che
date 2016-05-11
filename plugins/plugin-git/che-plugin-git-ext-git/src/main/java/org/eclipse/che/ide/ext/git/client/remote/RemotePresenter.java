@@ -33,6 +33,7 @@ import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -59,7 +60,6 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
 
     private Remote           selectedRemote;
     private ProjectConfigDto project;
-    private String           workspaceId;
 
     @Inject
     public RemotePresenter(RemoteView view,
@@ -85,7 +85,6 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
         this.constant = constant;
         this.addRemoteRepositoryPresenter = addRemoteRepositoryPresenter;
         this.notificationManager = notificationManager;
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /**
@@ -101,7 +100,7 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
      * then get the list of branches (remote and local).
      */
     private void getRemotes() {
-        service.remoteList(workspaceId, project, null, true,
+        service.remoteList(appContext.getDevMachine(), project, null, true,
                            new AsyncRequestCallback<List<Remote>>(dtoUnmarshallerFactory.newListUnmarshaller(Remote.class)) {
                                @Override
                                protected void onSuccess(List<Remote> result) {
@@ -146,8 +145,8 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
                 String errorMessage = caught.getMessage() != null ? caught.getMessage() : constant.remoteAddFailed();
                 GitOutputConsole console = gitOutputConsoleFactory.create(REMOTE_REPO_COMMAND_NAME);
                 console.printError(errorMessage);
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                notificationManager.notify(constant.remoteAddFailed(), FAIL, true, project);
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                notificationManager.notify(constant.remoteAddFailed(), FAIL, FLOAT_MODE, project);
             }
         });
     }
@@ -163,7 +162,7 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
         }
 
         final String name = selectedRemote.getName();
-        service.remoteDelete(workspaceId, project, name, new AsyncRequestCallback<String>() {
+        service.remoteDelete(appContext.getDevMachine(), project, name, new AsyncRequestCallback<String>() {
             @Override
             protected void onSuccess(String result) {
                 getRemotes();
@@ -175,8 +174,8 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
                 String errorMessage = exception.getMessage() != null ? exception.getMessage() : constant.remoteDeleteFailed();
                 GitOutputConsole console = gitOutputConsoleFactory.create(REMOTE_REPO_COMMAND_NAME);
                 console.printError(errorMessage);
-                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                notificationManager.notify(constant.remoteDeleteFailed(), FAIL, true, project);
+                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                notificationManager.notify(constant.remoteDeleteFailed(), FAIL, FLOAT_MODE, project);
             }
         });
     }
@@ -193,12 +192,12 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
     private void handleError(@NotNull String errorMessage) {
         GitOutputConsole console = gitOutputConsoleFactory.create(REMOTE_REPO_COMMAND_NAME);
         console.printError(errorMessage);
-        consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
+        consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
         notificationManager.notify(errorMessage, project);
     }
 
     private void refreshProject() {
-        projectService.getProject(workspaceId, project.getName(), new AsyncRequestCallback<ProjectConfigDto>(
+        projectService.getProject(appContext.getDevMachine(), project.getName(), new AsyncRequestCallback<ProjectConfigDto>(
                 dtoUnmarshallerFactory.newUnmarshaller(ProjectConfigDto.class)) {
             @Override
             protected void onSuccess(ProjectConfigDto result) {
@@ -207,7 +206,7 @@ public class RemotePresenter implements RemoteView.ActionDelegate {
 
             @Override
             protected void onFailure(Throwable exception) {
-                notificationManager.notify(exception.getLocalizedMessage(), FAIL, true, project);
+                notificationManager.notify(exception.getLocalizedMessage(), FAIL, FLOAT_MODE, project);
             }
         });
     }

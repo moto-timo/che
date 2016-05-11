@@ -25,10 +25,11 @@ import org.eclipse.che.ide.ext.git.client.compare.FileStatus.Status;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.ext.git.client.compare.FileStatus.Status.ADDED;
 import static org.eclipse.che.ide.ext.git.client.compare.FileStatus.Status.DELETED;
@@ -50,7 +51,6 @@ public class ComparePresenter implements CompareView.ActionDelegate {
     private final GitServiceClient        gitService;
     private final GitLocalizationConstant locale;
     private final NotificationManager     notificationManager;
-    private final String                  workspaceId;
 
     private String item;
     private String newContent;
@@ -75,8 +75,6 @@ public class ComparePresenter implements CompareView.ActionDelegate {
         this.locale = locale;
         this.notificationManager = notificationManager;
         this.view.setDelegate(this);
-
-        this.workspaceId = appContext.getWorkspaceId();
     }
 
     /**
@@ -95,7 +93,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
         if (status.equals(ADDED)) {
             showCompare(file, "", revision);
         } else if (status.equals(DELETED)) {
-            gitService.showFileContent(workspaceId, appContext.getCurrentProject().getRootProject(), file, revision,
+            gitService.showFileContent(appContext.getDevMachine(), appContext.getCurrentProject().getRootProject(), file, revision,
                                        new AsyncRequestCallback<ShowFileContentResponse>(
                                                dtoUnmarshallerFactory.newUnmarshaller(ShowFileContentResponse.class)) {
                                            @Override
@@ -106,11 +104,11 @@ public class ComparePresenter implements CompareView.ActionDelegate {
 
                                            @Override
                                            protected void onFailure(Throwable exception) {
-                                               notificationManager.notify(exception.getMessage(), FAIL, false);
+                                               notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                                            }
                                        });
         } else {
-            gitService.showFileContent(workspaceId, appContext.getCurrentProject().getRootProject(), file, revision,
+            gitService.showFileContent(appContext.getDevMachine(), appContext.getCurrentProject().getRootProject(), file, revision,
                                        new AsyncRequestCallback<ShowFileContentResponse>(
                                                dtoUnmarshallerFactory.newUnmarshaller(ShowFileContentResponse.class)) {
                                            @Override
@@ -120,7 +118,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
 
                                            @Override
                                            protected void onFailure(Throwable exception) {
-                                               notificationManager.notify(exception.getMessage(), FAIL, false);
+                                               notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                                            }
                                        });
         }
@@ -138,7 +136,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
             @Override
             public void accepted() {
                 final String path = appContext.getCurrentProject().getRootProject().getName() + "/" + item;
-                projectService.updateFile(workspaceId, path, newContent, new AsyncRequestCallback<Void>() {
+                projectService.updateFile(appContext.getDevMachine(), path, newContent, new AsyncRequestCallback<Void>() {
                     @Override
                     protected void onSuccess(Void result) {
                         eventBus.fireEvent(new FileContentUpdateEvent("/" + path));
@@ -146,7 +144,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
 
                     @Override
                     protected void onFailure(Throwable exception) {
-                        notificationManager.notify(exception.getMessage(), FAIL, false);
+                        notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                     }
                 });
                 view.hide();
@@ -167,7 +165,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
     private void showCompare(final String file, final String oldContent, final String revision) {
         String fullItemPath = appContext.getCurrentProject().getRootProject().getName() + "/" + file;
 
-        projectService.getFileContent(appContext.getWorkspace().getId(),
+        projectService.getFileContent(appContext.getDevMachine(),
                                       fullItemPath,
                                       new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                                           @Override
@@ -179,7 +177,7 @@ public class ComparePresenter implements CompareView.ActionDelegate {
 
                                           @Override
                                           protected void onFailure(Throwable exception) {
-                                              notificationManager.notify(exception.getMessage(), FAIL, false);
+                                              notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                                           }
                                       });
     }

@@ -345,7 +345,7 @@ public class EditCommandsViewImpl extends Window implements EditCommandsView {
                 delegate.onSaveClicked();
             }
         });
-        saveButton.addStyleName(this.resources.windowCss().primaryButton());
+        saveButton.addStyleName(Window.resources.windowCss().primaryButton());
         overFooter.add(saveButton);
 
         cancelButton = createButton(coreLocale.cancel(), "window-edit-configurations-cancel", new ClickHandler() {
@@ -426,6 +426,11 @@ public class EditCommandsViewImpl extends Window implements EditCommandsView {
     @Override
     public String getConfigurationPreviewUrl() {
         return configurationPreviewUrl.getText().trim();
+    }
+
+    @Override
+    public void setPreviewUrlState(boolean enabled) {
+        previewUrlPanel.setVisible(enabled);
     }
 
     @Override

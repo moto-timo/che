@@ -16,12 +16,14 @@ import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.user.client.Timer;
 import com.google.inject.Inject;
 import com.google.web.bindery.event.shared.EventBus;
+
 import org.eclipse.che.api.machine.gwt.client.MachineServiceClient;
 import org.eclipse.che.api.machine.gwt.client.RecipeServiceClient;
 import org.eclipse.che.api.machine.shared.dto.LimitsDto;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
 import org.eclipse.che.api.machine.shared.dto.MachineDto;
 import org.eclipse.che.api.machine.shared.dto.MachineSourceDto;
+import org.eclipse.che.api.machine.shared.dto.event.MachineStatusEvent;
 import org.eclipse.che.api.machine.shared.dto.recipe.NewRecipe;
 import org.eclipse.che.api.machine.shared.dto.recipe.RecipeDescriptor;
 import org.eclipse.che.api.machine.shared.dto.recipe.RecipeUpdate;
@@ -36,11 +38,13 @@ import org.eclipse.che.ide.api.notification.StatusNotification;
 import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.extension.machine.client.MachineLocalizationConstant;
 import org.eclipse.che.ide.extension.machine.client.machine.MachineStateEvent;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
-import org.eclipse.che.ide.util.StringUtils;
+import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.util.loging.Log;
+import org.eclipse.che.ide.websocket.MessageBusProvider;
+import org.eclipse.che.ide.websocket.rest.SubscriptionHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +52,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.eclipse.che.api.core.model.machine.MachineStatus.RUNNING;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
+import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
+import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
+import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
 
 /**
  * Targets manager presenter.
@@ -60,6 +68,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
     private final TargetsView                 view;
     private final RecipeServiceClient         recipeServiceClient;
     private final DtoFactory                  dtoFactory;
+    private final DtoUnmarshallerFactory      dtoUnmarshallerFactory;
     private final DialogFactory               dialogFactory;
     private final NotificationManager         notificationManager;
     private final MachineLocalizationConstant machineLocale;
@@ -67,29 +76,33 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
     private final MachineServiceClient        machineService;
     private final WorkspaceServiceClient      workspaceServiceClient;
     private final EventBus                    eventBus;
+    private final MessageBusProvider          messageBusProvider;
 
-    private final List<Target> targets = new ArrayList<>();
-    private Target selectedTarget;
-    private final Map<String, MachineDto> machinesByNameMap = new HashMap<>();
+    private final List<Target>                targets = new ArrayList<>();
+    private Target                            selectedTarget;
+    private final Map<String, MachineDto>     machines = new HashMap<>();
 
-    private final List<String>                          architectures = new ArrayList<>();
+    private StatusNotification                connectNotification;
 
-    private StatusNotification                          connectNotification;
+    private Map<String, SubscriptionHandler<MachineStatusEvent>> subscriptions = new HashMap<>();
 
     @Inject
     public TargetsPresenter(final TargetsView view,
                             final RecipeServiceClient recipeServiceClient,
                             final DtoFactory dtoFactory,
+                            final DtoUnmarshallerFactory dtoUnmarshallerFactory,
                             final DialogFactory dialogFactory,
                             final NotificationManager notificationManager,
                             final MachineLocalizationConstant machineLocale,
                             final AppContext appContext,
                             final MachineServiceClient machineService,
                             final WorkspaceServiceClient workspaceServiceClient,
-                            final EventBus eventBus) {
+                            final EventBus eventBus,
+                            final MessageBusProvider messageBusProvider) {
         this.view = view;
         this.recipeServiceClient = recipeServiceClient;
         this.dtoFactory = dtoFactory;
+        this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
         this.dialogFactory = dialogFactory;
         this.notificationManager = notificationManager;
         this.machineLocale = machineLocale;
@@ -97,11 +110,9 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         this.machineService = machineService;
         this.workspaceServiceClient = workspaceServiceClient;
         this.eventBus = eventBus;
+        this.messageBusProvider = messageBusProvider;
 
         view.setDelegate(this);
-
-        architectures.add("linux_amd64");
-        architectures.add("linux_arm7");
     }
 
     /**
@@ -124,13 +135,13 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
      */
     private void updateTargets(final String targetToSelect) {
         targets.clear();
-        machinesByNameMap.clear();
+        machines.clear();
 
         machineService.getMachines(appContext.getWorkspaceId()).then(new Operation<List<MachineDto>>() {
             @Override
             public void apply(List<MachineDto> machineList) throws OperationException {
                 for (MachineDto machine : machineList) {
-                    machinesByNameMap.put(machine.getConfig().getName(), machine);
+                    machines.put(machine.getConfig().getName(), machine);
                 }
 
                 recipeServiceClient.getAllRecipes().then(new Operation<List<RecipeDescriptor>>() {
@@ -142,7 +153,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                                 continue;
                             }
 */
-                            final MachineDto machine = machinesByNameMap.get(recipe.getName());
+                            final MachineDto machine = machines.get(recipe.getName());
                             final String targetType;
                             if (machine == null) {
                                 targetType = recipe.getType();
@@ -200,11 +211,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         try {
             JSONObject json = JSONParser.parseStrict(target.getRecipe().getScript()).isObject();
 
-            if (json.get("architecture") != null) {
-                String architecture = json.get("architecture").isString().stringValue();
-                target.setArchitecture(architecture);
-            }
-
             if (json.get("host") != null) {
                 String host = json.get("host").isString().stringValue();
                 target.setHost(host);
@@ -237,12 +243,11 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
 
     @Override
     public void onAddTarget(String category) {
-        Target target = new Target("[new target]", SSH_CATEGORY);
-        target.setArchitecture("linux_amd64");
-        target.setHost("127.0.0.1");
+        Target target = new Target("new_target", SSH_CATEGORY);
+        target.setHost("");
         target.setPort("22");
         target.setUserName("root");
-        target.setPassword("root");
+        target.setPassword("");
         target.setDirty(true);
         target.setConnected(false);
         targets.add(target);
@@ -261,9 +266,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         if (SSH_CATEGORY.equalsIgnoreCase(target.getType())) {
             view.showPropertiesPanel();
             view.setTargetName(target.getName());
-
-            view.setAvailableArchitectures(architectures);
-            view.setArchitecture(target.getArchitecture());
 
             view.setHost(target.getHost());
             view.setPort(target.getPort());
@@ -286,17 +288,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         }
 
         selectedTarget.setName(value);
-        selectedTarget.setDirty(true);
-        updateButtons();
-    }
-
-    @Override
-    public void onArchitectureChanged(String value) {
-        if (selectedTarget.getArchitecture().equals(value)) {
-            return;
-        }
-
-        selectedTarget.setArchitecture(value);
         selectedTarget.setDirty(true);
         updateButtons();
     }
@@ -353,23 +344,75 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
             return;
         }
 
-        view.enableConnectButton(!selectedTarget.isDirty());
-
+        // Update text of Connect / Disconnect button
         if (selectedTarget.isConnected()) {
             view.setConnectButtonText("Disconnect");
         } else {
             view.setConnectButtonText("Connect");
         }
 
-        view.enableCancelButton(selectedTarget.isDirty());
-
-        if (StringUtils.isNullOrEmpty(view.getTargetName()) ||
-                StringUtils.isNullOrEmpty(view.getHost()) ||
-                StringUtils.isNullOrEmpty(view.getPort())) {
+        // Disable Save and Cancel buttons and enable Connect for non dirty target.
+        if (!selectedTarget.isDirty()) {
+            view.enableConnectButton(true);
+            view.enableCancelButton(false);
             view.enableSaveButton(false);
-        } else {
-            view.enableSaveButton(selectedTarget.isDirty());
+
+            view.unmarkTargetName();
+            view.unmarkHost();
+            view.unmarkPort();
+            return;
         }
+
+        view.enableConnectButton(false);
+        view.enableCancelButton(true);
+
+        // target name must be not empty
+        if (view.getTargetName().isEmpty()) {
+            view.markTargetNameInvalid();
+            view.enableSaveButton(false);
+            return;
+        }
+
+        boolean enableSave = true;
+
+        // check target name to being not empty
+        if (view.getTargetName().isEmpty()) {
+            enableSave = false;
+            view.markTargetNameInvalid();
+        } else {
+            boolean targetAlreadyExists = false;
+            for (Target target : targets) {
+                if (target != selectedTarget && target.getName().equals(view.getTargetName())) {
+                    targetAlreadyExists = true;
+                    break;
+                }
+            }
+
+            if (targetAlreadyExists) {
+                enableSave = false;
+                view.markTargetNameInvalid();
+            } else {
+                view.unmarkTargetName();
+            }
+        }
+
+        // check host to being not empty
+        if (view.getHost().isEmpty()) {
+            enableSave = false;
+            view.markHostInvalid();
+        } else {
+            view.unmarkHost();
+        }
+
+        // check port to being not empty
+        if (view.getPort().isEmpty()) {
+            enableSave = false;
+            view.markPortInvalid();
+        } else {
+            view.unmarkPort();
+        }
+
+        view.enableSaveButton(enableSave);
     }
 
     @Override
@@ -397,7 +440,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 .withName(selectedTarget.getName())
                 .withType(SSH_CATEGORY)
                 .withScript("{" +
-                        "\"architecture\": \"" + selectedTarget.getArchitecture() + "\", " +
                         "\"host\": \"" + selectedTarget.getHost() + "\", " +
                         "\"port\": \"" + selectedTarget.getPort() + "\", " +
                         "\"username\": \"" + selectedTarget.getUserName() + "\", " +
@@ -434,7 +476,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 .withDescription(selectedTarget.getRecipe().getDescription())
                 .withPermissions(selectedTarget.getRecipe().getPermissions())
                 .withScript("{" +
-                        "\"architecture\": \"" + selectedTarget.getArchitecture() + "\", " +
                         "\"host\": \"" + selectedTarget.getHost() + "\", " +
                         "\"port\": \"" + selectedTarget.getPort() + "\", " +
                         "\"username\": \"" + selectedTarget.getUserName() + "\", " +
@@ -468,8 +509,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         view.showTargets(targets);
         view.selectTarget(selectedTarget);
 
-        //updateButtons();
-        notificationManager.notify(machineLocale.targetsViewSaveSuccess(), StatusNotification.Status.SUCCESS, true);
+        notificationManager.notify(machineLocale.targetsViewSaveSuccess(), SUCCESS, FLOAT_MODE);
     }
 
     @Override
@@ -508,9 +548,11 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
      * Starts a machine based on the selected recipe.
      */
     private void connect() {
+        subscribeToMachineChannel(selectedTarget.getName());
+
         view.setConnectButtonText(null);
 
-        connectNotification = notificationManager.notify(machineLocale.targetsViewConnectProgress(selectedTarget.getName()), StatusNotification.Status.PROGRESS, true);
+        connectNotification = notificationManager.notify(machineLocale.targetsViewConnectProgress(selectedTarget.getName()), PROGRESS, FLOAT_MODE);
 
         String recipeURL = selectedTarget.getRecipe().getLink("get recipe script").getHref();
 
@@ -522,8 +564,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 .withName(selectedTarget.getName())
                 .withSource(sourceDto)
                 .withLimits(limitsDto)
-                .withType(SSH_CATEGORY)
-                .withArchitecture(selectedTarget.getArchitecture());
+                .withType(SSH_CATEGORY);
 
         Promise<MachineDto> machinePromise = workspaceServiceClient.createMachine(appContext.getWorkspace().getId(), configDto);
 
@@ -531,59 +572,16 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
             @Override
             public void apply(final MachineDto machineDto) throws OperationException {
                 eventBus.fireEvent(new MachineStateEvent(machineDto, MachineStateEvent.MachineAction.CREATING));
-                ensureMachineIsStarted(machineDto.getId());
             }
         });
 
         machinePromise.catchError(new Operation<PromiseError>() {
             @Override
             public void apply(PromiseError promiseError) throws OperationException {
-                onConnectingFailed();
+                unsubscribeFromMachineChannel(selectedTarget.getName());
+                onConnectingFailed(null);
             }
         });
-    }
-
-    /**
-     * Ensures machine is started.
-     */
-    private void ensureMachineIsStarted(final String machineId) {
-        machineService.getMachine(machineId).then(new Operation<MachineDto>() {
-            @Override
-            public void apply(MachineDto machineDto) throws OperationException {
-                if (machineDto.getStatus() == RUNNING) {
-                    eventBus.fireEvent(new MachineStateEvent(machineDto, MachineStateEvent.MachineAction.RUNNING));
-                    onConnected();
-                } else {
-                    new Timer() {
-                        @Override
-                        public void run() {
-                            ensureMachineIsStarted(machineId);
-                        }
-                    }.schedule(1000);
-                }
-            }
-        }).catchError(new Operation<PromiseError>() {
-            @Override
-            public void apply(PromiseError arg) throws OperationException {
-                onConnectingFailed();
-            }
-        });
-    }
-
-    /**
-     * Displays a notification
-     */
-    private void onConnected() {
-        connectNotification.setTitle(machineLocale.targetsViewConnectSuccess(selectedTarget.getName()));
-        connectNotification.setStatus(StatusNotification.Status.SUCCESS);
-        updateTargets(selectedTarget.getName());
-    }
-
-    private void onConnectingFailed() {
-        connectNotification.setTitle(machineLocale.targetsViewConnectError(selectedTarget.getName()));
-        connectNotification.setStatus(StatusNotification.Status.FAIL);
-
-        view.selectTarget(selectedTarget);
     }
 
     /**
@@ -594,8 +592,8 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         if (selectedTarget == null || !selectedTarget.isConnected()) {
             return;
         }
-        final MachineDto machine = machinesByNameMap.get(selectedTarget.getName());
-        disconnect(machine);
+
+        disconnect(machines.get(selectedTarget.getName()));
     }
 
     /**
@@ -610,17 +608,19 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         }
         view.setConnectButtonText(null);
 
+        unsubscribeFromMachineChannel(machine.getConfig().getName());
+
         machineService.destroyMachine(machine.getId()).then(new Operation<Void>() {
             @Override
             public void apply(Void arg) throws OperationException {
                 eventBus.fireEvent(new MachineStateEvent(machine, MachineStateEvent.MachineAction.DESTROYED));
-                notificationManager.notify(machineLocale.targetsViewDisconnectSuccess(selectedTarget.getName()), StatusNotification.Status.SUCCESS, true);
+                notificationManager.notify(machineLocale.targetsViewDisconnectSuccess(selectedTarget.getName()), SUCCESS, FLOAT_MODE);
                 updateTargets(selectedTarget.getName());
             }
         }).catchError(new Operation<PromiseError>() {
             @Override
             public void apply(PromiseError arg) throws OperationException {
-                notificationManager.notify(machineLocale.targetsViewDisconnectError(selectedTarget.getName()), StatusNotification.Status.FAIL, true);
+                notificationManager.notify(machineLocale.targetsViewDisconnectError(selectedTarget.getName()), FAIL, FLOAT_MODE);
                 updateTargets(selectedTarget.getName());
             }
         });
@@ -646,7 +646,8 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
     }
 
     private void disconnectAndDelete(final Target target) {
-        final MachineDto machine = machinesByNameMap.get(target.getName());
+        final MachineDto machine = machines.get(target.getName());
+
         if (machine == null || machine.getStatus() != RUNNING) {
             return;
         }
@@ -654,7 +655,8 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         machineService.destroyMachine(machine.getId()).then(new Operation<Void>() {
             @Override
             public void apply(Void arg) throws OperationException {
-                notificationManager.notify(machineLocale.targetsViewDisconnectSuccess(target.getName()), StatusNotification.Status.SUCCESS, true);
+                eventBus.fireEvent(new MachineStateEvent(machine, MachineStateEvent.MachineAction.DESTROYED));
+                notificationManager.notify(machineLocale.targetsViewDisconnectSuccess(target.getName()), SUCCESS, FLOAT_MODE);
                 new Timer() {
                     @Override
                     public void run() {
@@ -665,7 +667,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
         }).catchError(new Operation<PromiseError>() {
             @Override
             public void apply(PromiseError arg) throws OperationException {
-                notificationManager.notify(machineLocale.targetsViewDisconnectError(target.getName()), StatusNotification.Status.FAIL, true);
+                notificationManager.notify(machineLocale.targetsViewDisconnectError(target.getName()), FAIL, FLOAT_MODE);
                 updateTargets(target.getName());
             }
         });
@@ -688,7 +690,7 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 view.selectTarget(null);
                 view.showHintPanel();
 
-                notificationManager.notify(machineLocale.targetsViewDeleteSuccess(target.getName()), StatusNotification.Status.SUCCESS, true);
+                notificationManager.notify(machineLocale.targetsViewDeleteSuccess(target.getName()), SUCCESS, FLOAT_MODE);
             }
         });
 
@@ -698,7 +700,113 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 dialogFactory.createMessageDialog("Error", machineLocale.targetsViewDeleteError(target.getName()), null).show();
             }
         });
+    }
 
+    /**
+     * Subscribes to the websocket channel and starts listening machine status events.
+     *
+     * @param machineName
+     *          mane of the machine to subscribe
+     */
+    private void subscribeToMachineChannel(final String machineName) {
+        String channel = "machine:status:" + appContext.getWorkspace().getId() + ':' + machineName;
+
+        if (subscriptions.containsKey(channel)) {
+            return;
+        }
+
+        SubscriptionHandler<MachineStatusEvent> statusHandler = new SubscriptionHandler<MachineStatusEvent>(
+                dtoUnmarshallerFactory.newWSUnmarshaller(MachineStatusEvent.class)) {
+            @Override
+            protected void onMessageReceived(MachineStatusEvent event) {
+                if (MachineStatusEvent.EventType.RUNNING == event.getEventType()) {
+                    onConnected(event.getMachineId());
+                } else if (MachineStatusEvent.EventType.ERROR == event.getEventType()) {
+                    unsubscribeFromMachineChannel(event.getMachineName());
+                    onConnectingFailed(event.getError());
+                }
+            }
+
+            @Override
+            protected void onErrorReceived(Throwable exception) {
+                Log.error(TargetsPresenter.class, exception.getMessage());
+            }
+        };
+
+        try {
+            messageBusProvider.getMessageBus().subscribe(channel, statusHandler);
+            subscriptions.put(channel, statusHandler);
+        } catch (Exception e) {
+            Log.error(TargetsPresenter.class, e.getMessage());
+        }
+    }
+
+    /**
+     * Ensures machine is started.
+     */
+    private void onConnected(final String machineId) {
+        // There is a little bug in machine service on the server side.
+        // The machine info is updated with a little delay after running a machine.
+        // Using timer must fix the problem.
+        new Timer() {
+            @Override
+            public void run() {
+                machineService.getMachine(machineId).then(new Operation<MachineDto>() {
+                    @Override
+                    public void apply(MachineDto machineDto) throws OperationException {
+                        if (machineDto.getStatus() == RUNNING) {
+                            eventBus.fireEvent(new MachineStateEvent(machineDto, MachineStateEvent.MachineAction.RUNNING));
+                            connectNotification.setTitle(machineLocale.targetsViewConnectSuccess(machineDto.getConfig().getName()));
+                            connectNotification.setStatus(StatusNotification.Status.SUCCESS);
+                            updateTargets(machineDto.getConfig().getName());
+                        } else {
+                            onConnectingFailed(null);
+                        }
+                    }
+                }).catchError(new Operation<PromiseError>() {
+                    @Override
+                    public void apply(PromiseError arg) throws OperationException {
+                        onConnectingFailed(null);
+                    }
+                });
+            }
+        }.schedule(500);
+    }
+
+    /**
+     * Handles connecting error and displays an error message.
+     *
+     * @param reason
+     *          a reason to be attached to the error message
+     */
+    private void onConnectingFailed(String reason) {
+        connectNotification.setTitle(machineLocale.targetsViewConnectError(selectedTarget.getName()));
+        if (reason != null) {
+            connectNotification.setContent(reason);
+        }
+
+        connectNotification.setStatus(StatusNotification.Status.FAIL);
+
+        view.selectTarget(selectedTarget);
+    }
+
+    /**
+     * Removes the subscription from the websocket channel and stops listening machine status events.
+     *
+     * @param machineName
+     *          name of the machine to unsubscribe
+     */
+    private void unsubscribeFromMachineChannel(String machineName) {
+        String channel = "machine:status:" + appContext.getWorkspace().getId() + ':' + machineName;
+
+        SubscriptionHandler<MachineStatusEvent> statusHandler = subscriptions.remove(channel);
+        if (statusHandler != null) {
+            try {
+                messageBusProvider.getMessageBus().unsubscribe(channel, statusHandler);
+            } catch (Exception e) {
+                Log.error(getClass(), e.getMessage());
+            }
+        }
     }
 
 }

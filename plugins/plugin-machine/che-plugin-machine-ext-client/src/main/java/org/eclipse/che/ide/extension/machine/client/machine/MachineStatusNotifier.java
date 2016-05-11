@@ -14,9 +14,10 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 
-import org.eclipse.che.api.machine.shared.dto.MachineDto;
+import org.eclipse.che.api.core.model.machine.Machine;
 import org.eclipse.che.api.machine.shared.dto.event.MachineStatusEvent;
-import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
+import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedEvent;
+import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedHandler;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.notification.StatusNotification;
@@ -29,13 +30,12 @@ import org.eclipse.che.ide.websocket.WebSocketException;
 import org.eclipse.che.ide.websocket.events.MessageHandler;
 import org.eclipse.che.ide.websocket.rest.SubscriptionHandler;
 import org.eclipse.che.ide.websocket.rest.Unmarshallable;
-import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedEvent;
-import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedHandler;
 
 import javax.validation.constraints.NotNull;
 
 import static org.eclipse.che.api.machine.gwt.client.MachineManager.MachineOperationType;
 import static org.eclipse.che.api.machine.gwt.client.MachineManager.MachineOperationType.RESTART;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.PROGRESS;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.SUCCESS;
@@ -76,7 +76,7 @@ class MachineStatusNotifier {
 
         eventBus.addHandler(WorkspaceStartedEvent.TYPE, new WorkspaceStartedHandler() {
             @Override
-            public void onWorkspaceStarted(WorkspaceDto workspace) {
+            public void onWorkspaceStarted(WorkspaceStartedEvent event) {
                 messageBus = messageBusProvider.getMessageBus();
             }
         });
@@ -88,7 +88,7 @@ class MachineStatusNotifier {
      * @param machine
      *         machine to track
      */
-    void trackMachine(MachineDto machine, MachineOperationType operationType) {
+    void trackMachine(Machine machine, MachineOperationType operationType) {
         trackMachine(machine, null, operationType);
     }
 
@@ -100,12 +100,12 @@ class MachineStatusNotifier {
      * @param runningListener
      *         listener that will be notified when machine is running
      */
-    void trackMachine(final MachineDto machine, final RunningListener runningListener, final MachineOperationType operationType) {
+    void trackMachine(final Machine machine, final RunningListener runningListener, final MachineOperationType operationType) {
         final String machineName = machine.getConfig().getName();
         final String workspaceId = appContext.getWorkspace().getId();
         final String wsChannel = MACHINE_STATUS_WS_CHANNEL + workspaceId + ":" + machineName;
 
-        final StatusNotification notification = notificationManager.notify("", PROGRESS, false);
+        final StatusNotification notification = notificationManager.notify("", PROGRESS, NOT_EMERGE_MODE);
 
         final Unmarshallable<MachineStatusEvent> unmarshaller = dtoUnmarshallerFactory.newWSUnmarshaller(MachineStatusEvent.class);
         final MessageHandler messageHandler = new SubscriptionHandler<MachineStatusEvent>(unmarshaller) {

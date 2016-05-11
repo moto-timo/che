@@ -33,7 +33,6 @@ import org.eclipse.che.api.machine.server.spi.InstanceProvider;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.IoUtil;
-import org.eclipse.che.commons.lang.NameGenerator;
 import org.eclipse.che.plugin.docker.client.DockerConnector;
 import org.eclipse.che.plugin.docker.client.DockerConnectorConfiguration;
 import org.eclipse.che.plugin.docker.client.DockerFileException;
@@ -80,6 +79,7 @@ public class DockerInstanceProvider implements InstanceProvider {
 
     private final DockerConnector                  docker;
     private final DockerInstanceStopDetector       dockerInstanceStopDetector;
+    private final DockerContainerNameGenerator     containerNameGenerator;
     private final WorkspaceFolderPathProvider      workspaceFolderPathProvider;
     private final boolean                          doForcePullOnBuild;
     private final boolean                          privilegeMode;
@@ -99,6 +99,7 @@ public class DockerInstanceProvider implements InstanceProvider {
                                   DockerConnectorConfiguration dockerConnectorConfiguration,
                                   DockerMachineFactory dockerMachineFactory,
                                   DockerInstanceStopDetector dockerInstanceStopDetector,
+                                  DockerContainerNameGenerator containerNameGenerator,
                                   @Named("machine.docker.dev_machine.machine_servers") Set<ServerConf> devMachineServers,
                                   @Named("machine.docker.machine_servers") Set<ServerConf> allMachinesServers,
                                   @Named("machine.docker.dev_machine.machine_volumes") Set<String> devMachineSystemVolumes,
@@ -115,17 +116,20 @@ public class DockerInstanceProvider implements InstanceProvider {
         this.docker = docker;
         this.dockerMachineFactory = dockerMachineFactory;
         this.dockerInstanceStopDetector = dockerInstanceStopDetector;
+        this.containerNameGenerator = containerNameGenerator;
         this.workspaceFolderPathProvider = workspaceFolderPathProvider;
         this.doForcePullOnBuild = doForcePullOnBuild;
         this.privilegeMode = privilegeMode;
         this.supportedRecipeTypes = Collections.singleton("dockerfile");
         this.projectFolderPath = projectFolderPath;
 
+        allMachinesSystemVolumes = removeEmptyAndNullValues(allMachinesSystemVolumes);
+        devMachineSystemVolumes = removeEmptyAndNullValues(devMachineSystemVolumes);
         if (SystemInfo.isWindows()) {
             allMachinesSystemVolumes = escapePaths(allMachinesSystemVolumes);
             devMachineSystemVolumes = escapePaths(devMachineSystemVolumes);
         }
-        this.commonMachineSystemVolumes = allMachinesSystemVolumes.toArray(new String[allMachinesEnvVariables.size()]);
+        this.commonMachineSystemVolumes = allMachinesSystemVolumes.toArray(new String[allMachinesSystemVolumes.size()]);
         final Set<String> devMachineVolumes = Sets.newHashSetWithExpectedSize(allMachinesSystemVolumes.size()
                                                                               + devMachineSystemVolumes.size());
         devMachineVolumes.addAll(allMachinesSystemVolumes);
@@ -142,8 +146,8 @@ public class DockerInstanceProvider implements InstanceProvider {
             devMachinePortsToExpose.put(serverConf.getPort(), Collections.emptyMap());
         }
 
-        allMachinesEnvVariables = filterEmptyAndNullValues(allMachinesEnvVariables);
-        devMachineEnvVariables = filterEmptyAndNullValues(devMachineEnvVariables);
+        allMachinesEnvVariables = removeEmptyAndNullValues(allMachinesEnvVariables);
+        devMachineEnvVariables = removeEmptyAndNullValues(devMachineEnvVariables);
         this.commonMachineEnvVariables = allMachinesEnvVariables;
         final HashSet<String> envVariablesForDevMachine = Sets.newHashSetWithExpectedSize(allMachinesEnvVariables.size() +
                                                                                           devMachineEnvVariables.size());
@@ -214,7 +218,11 @@ public class DockerInstanceProvider implements InstanceProvider {
                                    LineConsumer creationLogsOutput) throws MachineException, UnsupportedRecipeException {
         final Dockerfile dockerfile = parseRecipe(recipe);
 
-        final String machineContainerName = generateContainerName(machine.getWorkspaceId(), machine.getConfig().getName());
+        final String userName = EnvironmentContext.getCurrent().getUser().getName();
+        final String machineContainerName = containerNameGenerator.generateContainerName(machine.getWorkspaceId(),
+                                                                                         machine.getId(),
+                                                                                         userName,
+                                                                                         machine.getConfig().getName());
         final String machineImageName = "eclipse-che/" + machineContainerName;
         final long memoryLimit = (long)machine.getConfig().getLimits().getRam() * 1024 * 1024;
 
@@ -234,7 +242,11 @@ public class DockerInstanceProvider implements InstanceProvider {
 
         pullImage(dockerInstanceKey, creationLogsOutput);
 
-        final String machineContainerName = generateContainerName(machine.getWorkspaceId(), machine.getConfig().getName());
+        final String userName = EnvironmentContext.getCurrent().getUser().getName();
+        final String machineContainerName = containerNameGenerator.generateContainerName(machine.getWorkspaceId(),
+                                                                                         machine.getId(),
+                                                                                         userName,
+                                                                                         machine.getConfig().getName());
         final String machineImageName = "eclipse-che/" + machineContainerName;
         final String fullNameOfPulledImage = dockerInstanceKey.getFullName();
         try {
@@ -442,6 +454,8 @@ public class DockerInstanceProvider implements InstanceProvider {
             final DockerNode node = dockerMachineFactory.createNode(machine.getWorkspaceId(), containerId);
             if (machine.getConfig().isDev()) {
                 node.bindWorkspace();
+                LOG.info("Machine with id '{}' backed by container '{}' has been deployed on node '{}'",
+                         machine.getId(), containerId, node.getHost());
             }
 
             dockerInstanceStopDetector.startDetection(containerId, machine.getId());
@@ -456,18 +470,10 @@ public class DockerInstanceProvider implements InstanceProvider {
         }
     }
 
-    String generateContainerName(String workspaceId, String displayName) {
-        String userName = EnvironmentContext.getCurrent().getUser().getName();
-        final String containerName = userName + '_' + workspaceId + '_' + displayName + '_';
-
-        // removing all not allowed characters + generating random name suffix
-        return NameGenerator.generate(containerName.toLowerCase().replaceAll("[^a-z0-9_-]+", ""), 5);
-    }
-
     /**
      * Returns set that contains all non empty and non nullable values from specified set
      */
-    protected Set<String> filterEmptyAndNullValues(Set<String> paths) {
+    protected Set<String> removeEmptyAndNullValues(Set<String> paths) {
         return paths.stream()
                     .filter(path -> !Strings.isNullOrEmpty(path))
                     .collect(Collectors.toSet());

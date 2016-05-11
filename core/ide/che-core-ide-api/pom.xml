@@ -16,7 +16,7 @@
     <parent>
         <artifactId>che-core-ide-parent</artifactId>
         <groupId>org.eclipse.che.core</groupId>
-        <version>4.2.0-RC1-SNAPSHOT</version>
+        <version>4.3.0-RC1-SNAPSHOT</version>
     </parent>
     <artifactId>che-core-ide-api</artifactId>
     <packaging>jar</packaging>
@@ -52,19 +52,27 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
-            <artifactId>che-core-api-factory</artifactId>
+            <artifactId>che-core-api-factory-shared</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
-            <artifactId>che-core-api-project</artifactId>
+            <artifactId>che-core-api-project-shared</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
-            <artifactId>che-core-api-user</artifactId>
+            <artifactId>che-core-api-project-templates-shared</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
-            <artifactId>che-core-api-workspace</artifactId>
+            <artifactId>che-core-api-user-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.che.core</groupId>
+            <artifactId>che-core-api-workspace-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.che.core</groupId>
+            <artifactId>che-core-client-gwt-machine</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
@@ -91,6 +99,11 @@
         <dependency>
             <groupId>com.google.gwt</groupId>
             <artifactId>gwt-dev</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.gwt.gwtmockito</groupId>
+            <artifactId>gwtmockito</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -201,12 +214,12 @@
                         <exclude>**/*.png</exclude>
                         <exclude>**/*.gif</exclude>
                         <exclude>**/*.jpg</exclude>
-                        <exclude>**/ide/api/text/TextSelection.java</exclude>
-                        <exclude>**/ide/api/text/TextSelectionImpl.java</exclude>
-                        <exclude>**/ide/api/text/TypedPosition.java</exclude>
+                        <exclude>**/ide/api/editor/text/TypedPosition.java</exclude>
                         <exclude>**/ide/api/text/annotation/AnnotationModelEvent.java</exclude>
-                        <exclude>**/ide/api/text/rules/**/*.*</exclude>
-                        <exclude>**/ide/api/text/undo/**/*.*</exclude>
+                        <exclude>**/ide/api/editor/text/rules/**/*.*</exclude>
+                        <exclude>**/org/eclipse/che/ide/api/editor/reconciler/DirtyRegion.java</exclude>
+                        <exclude>**/org/eclipse/che/ide/api/editor/reconciler/DirtyRegionQueue.java</exclude>
+                        <exclude>**/org/eclipse/che/ide/api/editor/annotation/AnnotationModelEvent.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>

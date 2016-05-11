@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.eclipse.che.ide.ext.git.client.history;
 
-import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.gwt.user.client.ui.IsWidget;
 import com.google.inject.Inject;
@@ -24,6 +23,7 @@ import org.eclipse.che.api.git.shared.Revision;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.api.app.AppContext;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.api.event.project.CloseCurrentProjectEvent;
 import org.eclipse.che.ide.api.event.project.CloseCurrentProjectHandler;
 import org.eclipse.che.ide.api.notification.NotificationManager;
@@ -43,16 +43,15 @@ import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPrese
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.StringUnmarshaller;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
 import org.vectomatic.dom.svg.ui.SVGResource;
 
 import javax.validation.constraints.NotNull;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.eclipse.che.api.git.shared.DiffRequest.DiffType.RAW;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.util.ExceptionUtils.getErrorCode;
 
@@ -80,7 +79,6 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
     private final DateTimeFormatter       dateTimeFormatter;
     private final GitOutputConsoleFactory gitOutputConsoleFactory;
     private final ConsolesPanelPresenter  consolesPanelPresenter;
-    private final String                  workspaceId;
     /** If <code>true</code> then show all changes in project, if <code>false</code> then show changes of the selected resource. */
     private       boolean                 showChangesInProject;
     private       DiffWith                diffType;
@@ -120,7 +118,6 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
         this.notificationManager = notificationManager;
         this.dtoUnmarshallerFactory = dtoUnmarshallerFactory;
         this.selectionAgent = selectionAgent;
-        this.workspaceId = appContext.getWorkspaceId();
 
         eventBus.addHandler(CloseCurrentProjectEvent.TYPE, new CloseCurrentProjectHandler() {
             @Override
@@ -162,7 +159,7 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
 
     /** Get the log of the commits. If successfully received, then display in revision grid, otherwise - show error in output panel. */
     private void getCommitsLog(final ProjectConfigDto project) {
-        service.log(workspaceId, project, null, false,
+        service.log(appContext.getDevMachine(), project, null, false,
                     new AsyncRequestCallback<LogResponse>(dtoUnmarshallerFactory.newUnmarshaller(LogResponse.class)) {
                         @Override
                         protected void onSuccess(LogResponse result) {
@@ -181,8 +178,8 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
                                 String errorMessage = exception.getMessage() != null ? exception.getMessage() : constant.logFailed();
                                 GitOutputConsole console = gitOutputConsoleFactory.create(LOG_COMMAND_NAME);
                                 console.printError(errorMessage);
-                                consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                notificationManager.notify(constant.logFailed(), FAIL, true, project);
+                                consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                notificationManager.notify(constant.logFailed(), FAIL, FLOAT_MODE, project);
                             }
                             partStack.hidePart(HistoryPresenter.this);
                             workspaceAgent.removePart(HistoryPresenter.this);
@@ -366,7 +363,7 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
         }
 
         final ProjectConfigDto project = appContext.getCurrentProject().getRootProject();
-        service.diff(workspaceId, project, filePatterns, RAW, false, 0, revision.getId(), isCached,
+        service.diff(appContext.getDevMachine(), project, filePatterns, RAW, false, 0, revision.getId(), isCached,
                      new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                          @Override
                          protected void onSuccess(String result) {
@@ -382,8 +379,8 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
                              String errorMessage = exception.getMessage() != null ? exception.getMessage() : constant.diffFailed();
                              GitOutputConsole console = gitOutputConsoleFactory.create(DIFF_COMMAND_NAME);
                              console.printError(errorMessage);
-                             consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                             notificationManager.notify(constant.diffFailed(), FAIL, true, project);
+                             consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                             notificationManager.notify(constant.diffFailed(), FAIL, FLOAT_MODE, project);
                          }
                      });
     }
@@ -405,7 +402,7 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
         if (index + 1 < revisions.size()) {
             final Revision revisionA = revisions.get(index + 1);
             final ProjectConfigDto project = appContext.getCurrentProject().getRootProject();
-            service.diff(workspaceId, project, filePatterns, RAW, false, 0, revisionA.getId(),
+            service.diff(appContext.getDevMachine(), project, filePatterns, RAW, false, 0, revisionA.getId(),
                          revisionB.getId(),
                          new AsyncRequestCallback<String>(new StringUnmarshaller()) {
                              @Override
@@ -422,8 +419,8 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
                                  String errorMessage = exception.getMessage() != null ? exception.getMessage() : constant.diffFailed();
                                  GitOutputConsole console = gitOutputConsoleFactory.create(DIFF_COMMAND_NAME);
                                  console.printError(errorMessage);
-                                 consolesPanelPresenter.addCommandOutput(appContext.getDevMachineId(), console);
-                                 notificationManager.notify(constant.diffFailed(), FAIL, true, project);
+                                 consolesPanelPresenter.addCommandOutput(appContext.getDevMachine().getId(), console);
+                                 notificationManager.notify(constant.diffFailed(), FAIL, FLOAT_MODE, project);
                              }
                          });
         } else {
@@ -439,13 +436,7 @@ public class HistoryPresenter extends BasePresenter implements HistoryView.Actio
 
     /** {@inheritDoc} */
     @Override
-    public ImageResource getTitleImage() {
-        return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public SVGResource getTitleSVGImage() {
+    public SVGResource getTitleImage() {
         return resources.history();
     }
 

@@ -44,9 +44,9 @@ import org.eclipse.che.ide.project.node.remove.DeleteNodeHandler;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.Unmarshallable;
-import org.eclipse.che.ide.ui.dialogs.CancelCallback;
-import org.eclipse.che.ide.ui.dialogs.ConfirmCallback;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.CancelCallback;
+import org.eclipse.che.ide.api.dialogs.ConfirmCallback;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.websocket.WebSocketException;
 import org.eclipse.che.ide.websocket.rest.RequestCallback;
 
@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.eclipse.che.api.promises.client.callback.CallbackPromiseHelper.createFromCallback;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.NOT_EMERGE_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 import static org.eclipse.che.ide.workspace.perspectives.project.ProjectPerspective.PROJECT_PERSPECTIVE_ID;
 
@@ -159,7 +160,7 @@ public class DeleteItemAction extends AbstractPerspectiveAction implements Promi
                 }
 
                 final Unmarshallable<Status> unmarshall = dtoUnmarshallerFactory.newUnmarshaller(Status.class);
-                gitService.status(workspaceId, project, new AsyncRequestCallback<Status>(unmarshall) {
+                gitService.status(appContext.getDevMachine(), project, new AsyncRequestCallback<Status>(unmarshall) {
                     @Override
                     protected void onSuccess(final Status result) {
                         if (!result.getMissing().isEmpty()) {
@@ -169,7 +170,7 @@ public class DeleteItemAction extends AbstractPerspectiveAction implements Promi
 
                     @Override
                     protected void onFailure(Throwable exception) {
-                        notificationManager.notify(exception.getMessage(), FAIL, false);
+                        notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                     }
                 });
             }
@@ -195,7 +196,7 @@ public class DeleteItemAction extends AbstractPerspectiveAction implements Promi
             @Override
             public void accepted() {
                 try {
-                    gitService.add(workspaceId, project, false, itemsToAddToIndex, new RequestCallback<Void>() {
+                    gitService.add(appContext.getDevMachine(), project, false, itemsToAddToIndex, new RequestCallback<Void>() {
                         @Override
                         protected void onSuccess(Void result) {
                             notificationManager.notify(locale.deleteAddToIndexIndexUpdated(), locale.deleteAddToIndexDialogNotification());
@@ -203,7 +204,7 @@ public class DeleteItemAction extends AbstractPerspectiveAction implements Promi
 
                         @Override
                         protected void onFailure(Throwable exception) {
-                            notificationManager.notify(locale.deleteAddToIndexIndexFailedToUpdate(), exception.getMessage(), FAIL, false);
+                            notificationManager.notify(locale.deleteAddToIndexIndexFailedToUpdate(), exception.getMessage(), FAIL, NOT_EMERGE_MODE);
                         }
                     });
                 } catch (WebSocketException e) {

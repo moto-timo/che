@@ -25,7 +25,7 @@ import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.filetypes.FileType;
 import org.eclipse.che.ide.api.filetypes.FileTypeRegistry;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
-import org.eclipse.che.ide.debug.Breakpoint;
+import org.eclipse.che.ide.api.debug.Breakpoint;
 import org.eclipse.che.ide.debug.DebuggerDescriptor;
 import org.eclipse.che.ide.debug.DebuggerManager;
 import org.eclipse.che.ide.debug.DebuggerObserver;
@@ -166,7 +166,7 @@ public class DebuggerTest extends BaseTest {
         doReturn(messageBus).when(messageBusProvider).getMachineMessageBus();
 
         doReturn(localStorage).when(localStorageProvider).get();
-        doReturn(DEBUG_INFO).when(localStorage).getItem(debugger.LOCAL_STORAGE_DEBUGGER_KEY);
+        doReturn(DEBUG_INFO).when(localStorage).getItem(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_KEY);
         doReturn(debuggerInfo).when(dtoFactory).createDtoFromJson(DEBUG_INFO, DebuggerInfo.class);
 
         doReturn(fgnResolver).when(fqnResolverFactory).getResolver(anyString());
@@ -186,7 +186,7 @@ public class DebuggerTest extends BaseTest {
         debugger.addObserver(observer);
 
         FileType fileType = mock(FileType.class);
-        doReturn(Collections.singletonList("application/java")).when(fileType).getMimeTypes();
+        doReturn("java").when(fileType).getExtension();
         doReturn(fileType).when(fileTypeRegistry).getFileTypeByFile(eq(file));
     }
 

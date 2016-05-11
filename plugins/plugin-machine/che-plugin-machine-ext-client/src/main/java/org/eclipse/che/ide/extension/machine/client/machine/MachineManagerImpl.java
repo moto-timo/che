@@ -15,12 +15,12 @@ import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 
 import org.eclipse.che.api.core.rest.shared.dto.LinkParameter;
+import org.eclipse.che.api.machine.gwt.client.DevMachine;
 import org.eclipse.che.api.machine.gwt.client.MachineManager;
 import org.eclipse.che.api.machine.gwt.client.MachineServiceClient;
 import org.eclipse.che.api.machine.gwt.client.OutputMessageUnmarshaller;
 import org.eclipse.che.api.machine.gwt.client.WsAgentStateController;
 import org.eclipse.che.api.machine.gwt.client.events.DevMachineStateEvent;
-import org.eclipse.che.api.machine.gwt.client.events.MachineStartingEvent;
 import org.eclipse.che.api.machine.shared.dto.LimitsDto;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
 import org.eclipse.che.api.machine.shared.dto.MachineDto;
@@ -80,7 +80,6 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
     private final EventBus                eventBus;
 
     private MessageBus messageBus;
-    private Machine    devMachine;
     private boolean    isMachineRestarting;
 
     private String                                  wsAgentLogChannel;
@@ -134,7 +133,6 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
                         initialLoadingInfo.setOperationStatus(MACHINE_BOOTING.getValue(), SUCCESS);
 
                         String machineId = event.getMachineId();
-                        appContext.setDevMachineId(machineId);
                         onMachineRunning(machineId);
 
                         eventBus.fireEvent(new DevMachineStateEvent(event));
@@ -185,8 +183,8 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
     }
 
     @Override
-    public void restartMachine(final MachineDto machineState) {
-        eventBus.addHandler(MachineStateEvent.TYPE, new MachineStateEvent.Handler () {
+    public void restartMachine(final org.eclipse.che.api.core.model.machine.Machine machineState) {
+        eventBus.addHandler(MachineStateEvent.TYPE, new MachineStateEvent.Handler() {
 
             @Override
             public void onMachineCreating(MachineStateEvent event) {
@@ -236,9 +234,9 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
      * @param isDev
      * @param operationType
      * @param sourceType
-     *          "dockerfile" or "ssh-config"
+     *         "dockerfile" or "ssh-config"
      * @param machineType
-     *          "docker" or "ssh"
+     *         "docker" or "ssh"
      */
     private void startMachine(final String recipeURL,
                               final String displayName,
@@ -265,7 +263,7 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
         machinePromise.then(new Operation<MachineDto>() {
             @Override
             public void apply(final MachineDto machineDto) throws OperationException {
-                eventBus.fireEvent(new MachineStartingEvent(machineDto));
+                eventBus.fireEvent(new MachineStateEvent(machineDto, MachineStateEvent.MachineAction.CREATING));
 
                 subscribeToChannel(machineDto.getConfig()
                                              .getLink(LINK_REL_GET_MACHINE_LOGS_CHANNEL)
@@ -294,17 +292,18 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
         machineServiceClient.getMachine(machineId).then(new Operation<MachineDto>() {
             @Override
             public void apply(MachineDto machineDto) throws OperationException {
-                appContext.setDevMachineId(machineId);
+                DevMachine devMachine = new DevMachine(machineDto);
+                appContext.setDevMachine(devMachine);
                 appContext.setProjectsRoot(machineDto.getRuntime().projectsRoot());
-                devMachine = entityFactory.createMachine(machineDto);
-                wsAgentStateController.initialize(devMachine.getWsServerExtensionsUrl(), appContext.getWorkspaceId());
+                wsAgentStateController.initialize(devMachine);
             }
         });
     }
 
     @Override
     public boolean isDevMachineStatusTracked(MachineDto machine) {
-        final LinkParameter statusChannelLinkParameter = machine.getConfig().getLink(LINK_REL_GET_MACHINE_STATUS_CHANNEL).getParameter("channel");
+        final LinkParameter statusChannelLinkParameter =
+                machine.getConfig().getLink(LINK_REL_GET_MACHINE_STATUS_CHANNEL).getParameter("channel");
         if (statusChannelLinkParameter == null) {
             return false;
         }
@@ -314,15 +313,15 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
     }
 
     @Override
-    public Promise<Void> destroyMachine(final MachineDto machineState) {
+    public Promise<Void> destroyMachine(final org.eclipse.che.api.core.model.machine.Machine machineState) {
         return machineServiceClient.destroyMachine(machineState.getId()).then(new Operation<Void>() {
             @Override
             public void apply(Void arg) throws OperationException {
                 machineStatusNotifier.trackMachine(machineState, DESTROY);
 
-                final String devMachineId = appContext.getDevMachineId();
-                if (devMachineId != null && machineState.getId().equals(devMachineId)) {
-                    appContext.setDevMachineId(null);
+                final DevMachine devMachine = appContext.getDevMachine();
+                if (devMachine != null && machineState.getId().equals(devMachine.getId())) {
+                    appContext.setDevMachine(null);
                 }
             }
         });
@@ -339,7 +338,8 @@ public class MachineManagerImpl implements MachineManager, WorkspaceStoppedHandl
             if (logsChannelLinkParameter != null) {
                 outputChannel = logsChannelLinkParameter.getDefaultValue();
             }
-            final LinkParameter statusChannelLinkParameter = machineConfig.getLink(LINK_REL_GET_MACHINE_STATUS_CHANNEL).getParameter("channel");
+            final LinkParameter statusChannelLinkParameter =
+                    machineConfig.getLink(LINK_REL_GET_MACHINE_STATUS_CHANNEL).getParameter("channel");
             if (statusChannelLinkParameter != null) {
                 statusChannel = statusChannelLinkParameter.getDefaultValue();
             }

@@ -10,24 +10,24 @@
  *******************************************************************************/
 package org.eclipse.che.ide.extension.machine.client.perspective.widgets.machine.panel;
 
-import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.web.bindery.event.shared.EventBus;
 
 import org.eclipse.che.api.core.model.machine.MachineStatus;
 import org.eclipse.che.api.machine.gwt.client.MachineServiceClient;
-import org.eclipse.che.api.machine.gwt.client.events.MachineStartingEvent;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
 import org.eclipse.che.api.machine.shared.dto.MachineDto;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.Promise;
 import org.eclipse.che.api.promises.client.PromiseError;
+import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedEvent;
 import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStoppedEvent;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.app.CurrentProject;
+import org.eclipse.che.ide.api.dialogs.InputCallback;
 import org.eclipse.che.ide.api.event.ActivePartChangedEvent;
 import org.eclipse.che.ide.extension.machine.client.MachineLocalizationConstant;
 import org.eclipse.che.ide.extension.machine.client.MachineResources;
@@ -36,8 +36,6 @@ import org.eclipse.che.ide.extension.machine.client.inject.factories.WidgetsFact
 import org.eclipse.che.ide.extension.machine.client.machine.Machine;
 import org.eclipse.che.ide.extension.machine.client.machine.MachineStateEvent;
 import org.eclipse.che.ide.extension.machine.client.perspective.widgets.machine.appliance.MachineAppliancePresenter;
-import org.eclipse.che.ide.ui.dialogs.InputCallback;
-import org.eclipse.che.api.workspace.gwt.client.event.WorkspaceStartedEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,6 +44,7 @@ import org.mockito.Captor;
 import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.vectomatic.dom.svg.ui.SVGResource;
 
 import java.util.Collections;
 import java.util.List;
@@ -180,7 +179,6 @@ public class MachinePanelPresenterTest {
         verify(eventBus).addHandler(MachineStateEvent.TYPE, presenter);
         verify(eventBus).addHandler(WorkspaceStartedEvent.TYPE, presenter);
         verify(eventBus).addHandler(WorkspaceStoppedEvent.TYPE, presenter);
-        verify(eventBus).addHandler(MachineStartingEvent.TYPE, presenter);
     }
 
     @Test
@@ -275,9 +273,9 @@ public class MachinePanelPresenterTest {
 
     @Test
     public void titleImageShouldBeReturned() {
-        ImageResource resource = presenter.getTitleImage();
+        SVGResource resource = presenter.getTitleImage();
 
-        assertThat(resource, nullValue(ImageResource.class));
+        assertThat(resource, nullValue(SVGResource.class));
     }
 
     @Test
@@ -296,11 +294,13 @@ public class MachinePanelPresenterTest {
 
     @Test
     public void machineShouldBeAddedToTreeWhenItIsJustCreated() {
-        MachineStartingEvent startingEvent = mock(MachineStartingEvent.class);
+        when(selectedMachine1.getId()).thenReturn("machine1");
 
-        when(startingEvent.getMachine()).thenReturn(selectedMachine1);
+        MachineStateEvent stateEvent = mock(MachineStateEvent.class);
+        when(stateEvent.getMachineId()).thenReturn("machine1");
+        when(stateEvent.getMachine()).thenReturn(selectedMachine1);
 
-        presenter.onMachineStarting(startingEvent);
+        presenter.onMachineCreating(stateEvent);
 
         verify(view).setData(rootNode);
         verify(view).selectNode(machineNode1);
@@ -310,14 +310,14 @@ public class MachinePanelPresenterTest {
 
     @Test
     public void machineShouldBeSelectedWhenItIsRunning() {
-        MachineStartingEvent startingEvent = mock(MachineStartingEvent.class);
+        when(selectedMachine1.getId()).thenReturn("machine1");
 
-        when(startingEvent.getMachine()).thenReturn(selectedMachine1);
+        MachineStateEvent stateEvent = mock(MachineStateEvent.class);
+        when(stateEvent.getMachineId()).thenReturn("machine1");
         when(stateEvent.getMachine()).thenReturn(selectedMachine1);
 
-        presenter.onMachineStarting(startingEvent);
+        presenter.onMachineCreating(stateEvent);
         reset(view);
-
         presenter.onMachineRunning(stateEvent);
 
         verify(view).selectNode(machineNode1);
@@ -327,12 +327,13 @@ public class MachinePanelPresenterTest {
 
     @Test
     public void machineShouldBeRemovedFromTreeWhenItIsDestroyed() {
-        MachineStartingEvent startingEvent = mock(MachineStartingEvent.class);
+        when(selectedMachine1.getId()).thenReturn("machine1");
 
-        when(startingEvent.getMachine()).thenReturn(selectedMachine1);
+        MachineStateEvent stateEvent = mock(MachineStateEvent.class);
+        when(stateEvent.getMachineId()).thenReturn("machine1");
         when(stateEvent.getMachine()).thenReturn(selectedMachine1);
 
-        presenter.onMachineStarting(startingEvent);
+        presenter.onMachineCreating(stateEvent);
         reset(view);
         presenter.onMachineRunning(stateEvent);
 

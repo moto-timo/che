@@ -11,15 +11,15 @@
 
 package org.eclipse.jdt.internal.core;
 
-import org.eclipse.che.core.internal.resources.WorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.resources.ProjectScope;
+import org.eclipse.che.api.project.shared.Constants;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ProjectScope;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -46,6 +46,7 @@ import org.eclipse.jdt.core.ITypeHierarchy;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.WorkingCopyOwner;
+import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.core.eval.IEvaluationContext;
 import org.eclipse.jdt.internal.compiler.util.ObjectVector;
 import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
@@ -53,6 +54,7 @@ import org.eclipse.jdt.internal.core.util.JavaElementFinder;
 import org.eclipse.jdt.internal.core.util.MementoTokenizer;
 import org.eclipse.jdt.internal.core.util.Messages;
 import org.eclipse.jdt.internal.core.util.Util;
+import org.eclipse.jdt.internal.ui.JavaPlugin;
 import org.osgi.service.prefs.BackingStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,12 +67,15 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.file.DirectoryStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,104 +97,42 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
     /**
      * Name of file containing project classpath
      */
-    public static final String INNER_DIR = WorkspaceRoot.PROJECT_INNER_SETTING_DIR;
+    public static final String INNER_DIR = Constants.CODENVY_DIR;
     public static final String CLASSPATH_FILENAME = INNER_DIR + "/classpath";
 
     /**
      * Whether the underlying file system is case sensitive.
      */
     protected static final boolean                                    IS_CASE_SENSITIVE = !new File("Temp").equals(new File("temp"));
-    //$NON-NLS-1$ //$NON-NLS-2$
+    /**
+     * An empty array of strings indicating that a project doesn't have any prerequesite projects.
+     */
+    protected static final String[] NO_PREREQUISITES = CharOperation.NO_STRINGS;
+
     /**
      * Value of the project's raw classpath if the .classpath file contains invalid entries.
      */
     public static final    IClasspathEntry[]                          INVALID_CLASSPATH = new IClasspathEntry[0];
     private static final   Logger                                     LOG               = LoggerFactory.getLogger(JavaProject.class);
-    private final          DirectoryStream.Filter<java.nio.file.Path> jarFilter         = new DirectoryStream.Filter<java.nio.file.Path>() {
-        @Override
-        public boolean accept(java.nio.file.Path entry) throws IOException {
-            return entry.getFileName().toString().endsWith("jar");
-        }
-    };
-    private          String                workspacePath;
-    private volatile SearchableEnvironment nameEnvironment;
-    private          String                projectPath;
-    private          String                tempDir;
-    private          String                wsId;
-    private          File                  projectDir;
-    private          IClasspathEntry[]     rawClassPath;
-    private          ResolvedClasspath     resolvedClasspath;
+
     protected        IProject              project;
 
     public JavaProject(IProject project, JavaElement parent) {
         super(parent);
         this.project = project;
-    }
 
-//    public JavaProject(File root, String projectPath, String tempDir, String ws, Map<String, String> options, JavaElement parent) {
-//        super(parent);
-//        this.projectPath = projectPath;
-//        this.tempDir = tempDir;
-//        wsId = ws;
-//        workspacePath = root.getPath();
-//        int index = projectPath.lastIndexOf('/');
-//        projectName = index < 0 ? projectPath : projectPath.substring(index + 1);
-//        this.projectDir = new File(root, projectPath);
-//        this.options = options;
-//        List<IClasspathEntry> paths = new LinkedList<>();
-//        try {
-//            if (index <= 0) {
-//                // project in root folder
-//                addSources(projectDir, paths);
-//            } else {
-//                // module of project - add this module and all modules in parent projects
-//                index = projectPath.indexOf('/', 1);
-//                File parent = new File(root, projectPath.substring(1, index));
-//                LinkedList<File> q = new LinkedList<>();
-//                q.add(parent);
-//                while (!q.isEmpty()) {
-//                    File f = q.poll();
-//                    addSources(f, paths);
-//                    File[] l = f.listFiles();
-//                    for (File c : l) {
-//                        if (c.isDirectory()
-//                            && new File(c, Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH).exists()) {
-//
-//                            q.add(c);
-//                        }
-//                    }
-//                }
-//            }
-//        } catch (IOException e) {
-//            LOG.error("Can't find sources folder attribute", e);
-//        }
-//
-//        paths.add(JavaCore.newContainerEntry(new Path("codenvy:Jre")));
-//        File depDir = new File(tempDir, wsId + projectPath);
-//        try {
-//            if (depDir.exists()) {
-//                try (DirectoryStream<java.nio.file.Path> deps =
-//                             Files.newDirectoryStream(depDir.toPath(), jarFilter)) {
-//
-//                    for (java.nio.file.Path dep : deps) {
-//                        String name = dep.getFileName().toString();
-//                        File srcJar =
-//                                new File(dep.getParent().toFile(), "sources/" + name.substring(0, name.lastIndexOf('.')) + "-sources
-// .jar");
-//                        IPath srcPath = null;
-//                        if (srcJar.exists()) {
-//                            srcPath = new Path(srcJar.getAbsolutePath());
-//                        }
-//                        paths.add(JavaCore.newLibraryEntry(new Path(dep.toAbsolutePath().toString()), srcPath, null));
-//                    }
-//                }
-//            }
-//
-//        } catch (IOException e) {
-//            LOG.error("Can't find jar dependency's: ", e);
-//        }
-//        rawClassPath = paths.toArray(new IClasspathEntry[paths.size()]);
-//    }
+        //create
+        if(project.exists()) {
+            IFolder folder = project.getFolder(INNER_DIR);
+            if (!folder.exists()) {
+                try {
+                    folder.create(true, true, null);
+                } catch (CoreException e) {
+                    JavaPlugin.log(e);
+                }
+            }
+        }
+    }
 
     /**
      * Returns true if the given project is accessible and it has
@@ -223,46 +166,6 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
             return secondOutputLocation == null;
         return firstOutputLocation.equals(secondOutputLocation);
     }
-
-//    private void addSources(File projectDir, List<IClasspathEntry> paths) throws IOException {
-//        File codenvy = new File(projectDir, Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-//        List<File> sources = new LinkedList<>();
-//
-//        final ProjectJson projectJson;
-//        try (FileInputStream in = new FileInputStream(codenvy)) {
-//            projectJson = ProjectJson.load(in);
-//        }
-//
-////        Builders defBuilder = projectJson.getBuilders();
-//
-//        if (defBuilder != null) {
-//            if ("maven".equals(defBuilder.getDefault())) {
-//                File pom = new File(projectDir, "pom.xml");
-//                if (pom.exists()) {
-//                    for (String src : MavenUtils.getSourceDirectories(pom)) {
-//                        sources.add(new File(projectDir, src));
-//                    }
-//                }
-//            } else if ("ant".equals(defBuilder.getDefault())) {
-//                File build = new File(projectDir, "build.xml");
-//                if (build.exists()) {
-//                    for (String src : AntUtils.getSourceDirectories(build)) {
-//                        sources.add(new File(projectDir, src));
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (sources.isEmpty()) {
-//            sources.add(projectDir);
-//        }
-//
-//        for (File source : sources) {
-//            if (source.exists()) {
-//                paths.add(JavaCore.newSourceEntry(new Path(source.getAbsolutePath())));
-//            }
-//        }
-//    }
 
     /**
      * Computes the package fragment roots identified by the given entry.
@@ -522,6 +425,26 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
             throw e;
         }
     }
+
+    public String[] projectPrerequisites(IClasspathEntry[] resolvedClasspath)
+            throws JavaModelException {
+
+        ArrayList prerequisites = new ArrayList();
+        for (int i = 0, length = resolvedClasspath.length; i < length; i++) {
+            IClasspathEntry entry = resolvedClasspath[i];
+            if (entry.getEntryKind() == IClasspathEntry.CPE_PROJECT) {
+                prerequisites.add(entry.getPath().lastSegment());
+            }
+        }
+        int size = prerequisites.size();
+        if (size == 0) {
+            return NO_PREREQUISITES;
+        } else {
+            String[] result = new String[size];
+            prerequisites.toArray(result);
+            return result;
+        }
+    }
     /**
      * This is a helper method returning the resolved classpath for the project
      * as a list of simple (non-variable, non-container) classpath entries.
@@ -778,11 +701,6 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
         return classpathEntry;
     }
 
-
-    @Override
-    public String encodeClasspathEntry(IClasspathEntry classpathEntry) {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public IJavaElement findElement(IPath path) throws JavaModelException {
@@ -1668,10 +1586,6 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
         return project.getFullPath();
     }
 
-    public String getProjectPath(){
-        return projectPath;
-    }
-
     @Override
     public IJavaElement getPrimaryElement() {
         throw new UnsupportedOperationException();
@@ -1892,14 +1806,6 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
         return new SearchableEnvironment(this, owner);
     }
 
-    public String getWsId() {
-        return wsId;
-    }
-
-    public String getWorkspacePath() {
-        return workspacePath;
-    }
-
     /**
      * This is a helper method returning the expanded classpath for the project, as a list of classpath entries,
      * where all classpath variable entries have been resolved and substituted with their final target entries.
@@ -2081,11 +1987,201 @@ public class JavaProject extends Openable implements IJavaProject, SuffixConstan
 //        }
     }
 
-    public synchronized void creteNewNameEnvironment() {
+
+    /**
+     * Writes the classpath in a sharable format (VCM-wise) only when necessary, that is, if  it is semantically different
+     * from the existing one in file. Will never write an identical one.
+     *
+     * @param newClasspath IClasspathEntry[]
+     * @param newOutputLocation IPath
+     * @return boolean Return whether the .classpath file was modified.
+     * @throws JavaModelException
+     */
+    public boolean writeFileEntries(IClasspathEntry[] newClasspath, IClasspathEntry[] referencedEntries, IPath newOutputLocation)
+            throws JavaModelException {
+
+        if (!this.project.isAccessible()) return false;
+
+        Map unknownElements = new HashMap();
+        IClasspathEntry[][] fileEntries = readFileEntries(unknownElements);
+        if (fileEntries[0] != JavaProject.INVALID_CLASSPATH &&
+            areClasspathsEqual(newClasspath, newOutputLocation, fileEntries[0])
+            && (referencedEntries == null || areClasspathsEqual(referencedEntries, fileEntries[1]))) {
+            // no need to save it, it is the same
+            return false;
+        }
+
+        // actual file saving
         try {
-            nameEnvironment = new SearchableEnvironment(this, (ICompilationUnit[])null);
-        } catch (JavaModelException e) {
-            LOG.error("Can't create SearchableEnvironment", e);
+            setSharedProperty(JavaProject.CLASSPATH_FILENAME,
+                              encodeClasspath(newClasspath, referencedEntries, newOutputLocation, true, unknownElements));
+            return true;
+        } catch (CoreException e) {
+            throw new JavaModelException(e);
+        }
+    }
+
+    /**
+     * Record a shared persistent property onto a project.
+     * Note that it is orthogonal to IResource persistent properties, and client code has to decide
+     * which form of storage to use appropriately. Shared properties produce real resource files which
+     * can be shared through a VCM onto a server. Persistent properties are not shareable.
+     * <p>
+     * Shared properties end up in resource files, and thus cannot be modified during
+     * delta notifications (a CoreException would then be thrown).
+     *
+     * @param key String
+     * @param value String
+     * see JavaProject#getSharedProperty(String key)
+     * @throws CoreException
+     */
+    public void setSharedProperty(String key, String value) throws CoreException {
+
+        IFile rscFile = this.project.getFile(key);
+        byte[] bytes = null;
+        try {
+            bytes = value.getBytes(org.eclipse.jdt.internal.compiler.util.Util.UTF_8); // .classpath always encoded with UTF-8
+        } catch (UnsupportedEncodingException e) {
+            Util.log(e, "Could not write .classpath with UTF-8 encoding "); //$NON-NLS-1$
+            // fallback to default
+            bytes = value.getBytes();
+        }
+        InputStream inputStream = new ByteArrayInputStream(bytes);
+        // update the resource content
+        if (rscFile.exists()) {
+//            if (rscFile.isReadOnly()) {
+//                // provide opportunity to checkout read-only .classpath file (23984)
+//                ResourcesPlugin.getWorkspace().validateEdit(new IFile[]{rscFile}, IWorkspace.VALIDATE_PROMPT);
+//            }
+            rscFile.setContents(inputStream, IResource.FORCE, null);
+        } else {
+            rscFile.create(inputStream, IResource.FORCE, null);
+        }
+    }
+
+    private static boolean areClasspathsEqual(IClasspathEntry[] first, IClasspathEntry[] second) {
+        if (first != second) {
+            if (first == null) return false;
+            int length = first.length;
+            if (second == null || second.length != length)
+                return false;
+            for (int i = 0; i < length; i++) {
+                if (!first[i].equals(second[i]))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * Compare current classpath with given one to see if any different.
+     * Note that the argument classpath contains its binary output.
+     * @param newClasspath IClasspathEntry[]
+     * @param newOutputLocation IPath
+     * @param otherClasspathWithOutput IClasspathEntry[]
+     * @return boolean
+     */
+    private static boolean areClasspathsEqual(IClasspathEntry[] newClasspath, IPath newOutputLocation,
+                                              IClasspathEntry[] otherClasspathWithOutput) {
+
+        if (otherClasspathWithOutput == null || otherClasspathWithOutput.length == 0)
+            return false;
+
+        int length = otherClasspathWithOutput.length;
+        if (length != newClasspath.length + 1)
+            // output is amongst file entries (last one)
+            return false;
+
+
+        // compare classpath entries
+        for (int i = 0; i < length - 1; i++) {
+            if (!otherClasspathWithOutput[i].equals(newClasspath[i]))
+                return false;
+        }
+        // compare binary outputs
+        IClasspathEntry output = otherClasspathWithOutput[length - 1];
+        if (output.getContentKind() != ClasspathEntry.K_OUTPUT
+            || !output.getPath().equals(newOutputLocation))
+            return false;
+        return true;
+    }
+
+    /**
+     * Returns the XML String encoding of the class path.
+     */
+    protected String encodeClasspath(IClasspathEntry[] classpath, IClasspathEntry[] referencedEntries, IPath outputLocation, boolean indent,
+                                     Map unknownElements) throws JavaModelException {
+        try {
+            ByteArrayOutputStream s = new ByteArrayOutputStream();
+            OutputStreamWriter writer = new OutputStreamWriter(s, "UTF8"); //$NON-NLS-1$
+            XMLWriter xmlWriter = new XMLWriter(writer, this, true/*print XML version*/);
+
+            xmlWriter.startTag(ClasspathEntry.TAG_CLASSPATH, indent);
+            for (int i = 0; i < classpath.length; ++i) {
+                ((ClasspathEntry)classpath[i]).elementEncode(xmlWriter, this.project.getFullPath(), indent, true, unknownElements, false);
+            }
+
+            if (outputLocation != null) {
+                outputLocation = outputLocation.removeFirstSegments(1);
+                outputLocation = outputLocation.makeRelative();
+                HashMap parameters = new HashMap();
+                parameters.put(ClasspathEntry.TAG_KIND, ClasspathEntry.kindToString(ClasspathEntry.K_OUTPUT));
+                parameters.put(ClasspathEntry.TAG_PATH, String.valueOf(outputLocation));
+                xmlWriter.printTag(ClasspathEntry.TAG_CLASSPATHENTRY, parameters, indent, true, true);
+            }
+
+            if (referencedEntries != null) {
+                for (int i = 0; i < referencedEntries.length; ++i) {
+                    ((ClasspathEntry)referencedEntries[i])
+                            .elementEncode(xmlWriter, this.project.getFullPath(), indent, true, unknownElements, true);
+                }
+            }
+
+            xmlWriter.endTag(ClasspathEntry.TAG_CLASSPATH, indent, true/*insert new line*/);
+            writer.flush();
+            writer.close();
+            return s.toString("UTF8");//$NON-NLS-1$
+        } catch (IOException e) {
+            throw new JavaModelException(e, IJavaModelStatusConstants.IO_EXCEPTION);
+        }
+    }
+
+    public String encodeClasspathEntry(IClasspathEntry classpathEntry) {
+        try {
+            ByteArrayOutputStream s = new ByteArrayOutputStream();
+            OutputStreamWriter writer = new OutputStreamWriter(s, "UTF8"); //$NON-NLS-1$
+            XMLWriter xmlWriter = new XMLWriter(writer, this, false/*don't print XML version*/);
+
+            ((ClasspathEntry)classpathEntry)
+                    .elementEncode(xmlWriter, this.project.getFullPath(), true/*indent*/, true/*insert new line*/, null/*not interested in unknown elements*/,
+                                   (classpathEntry.getReferencingEntry() != null));
+
+            writer.flush();
+            writer.close();
+            return s.toString("UTF8");//$NON-NLS-1$
+        } catch (IOException e) {
+            return null; // never happens since all is done in memory
+        }
+    }
+
+    /*
+ * Reads the classpath file entries of this project's .classpath file.
+ * This includes the output entry.
+ * As a side effect, unknown elements are stored in the given map (if not null)
+ */
+    private IClasspathEntry[][] readFileEntries(Map unkwownElements) {
+        try {
+            return readFileEntriesWithException(unkwownElements);
+        } catch (CoreException e) {
+            Util.log(e, "Exception while reading " + getPath().append(JavaProject.CLASSPATH_FILENAME)); //$NON-NLS-1$
+            return new IClasspathEntry[][] {JavaProject.INVALID_CLASSPATH, ClasspathEntry.NO_ENTRIES};
+        } catch (IOException e) {
+            Util.log(e, "Exception while reading " + getPath().append(JavaProject.CLASSPATH_FILENAME)); //$NON-NLS-1$
+            return new IClasspathEntry[][] {JavaProject.INVALID_CLASSPATH, ClasspathEntry.NO_ENTRIES};
+        } catch (ClasspathEntry.AssertionFailedException e) {
+            Util.log(e, "Exception while reading " + getPath().append(JavaProject.CLASSPATH_FILENAME)); //$NON-NLS-1$
+            return new IClasspathEntry[][] {JavaProject.INVALID_CLASSPATH, ClasspathEntry.NO_ENTRIES};
         }
     }
 

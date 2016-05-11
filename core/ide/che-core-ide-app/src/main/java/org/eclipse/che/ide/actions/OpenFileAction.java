@@ -11,6 +11,8 @@
 package org.eclipse.che.ide.actions;
 
 import com.google.gwt.core.client.Callback;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 import com.google.web.bindery.event.shared.HandlerRegistration;
 
@@ -37,10 +39,8 @@ import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
 import org.eclipse.che.ide.project.node.FileReferenceNode;
 import org.eclipse.che.ide.util.loging.Log;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import static org.eclipse.che.api.promises.client.callback.CallbackPromiseHelper.createFromCallback;
+import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
 import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAIL;
 
 /**
@@ -94,7 +94,7 @@ public class OpenFileAction extends Action implements PromisableAction {
         return new Operation<PromiseError>() {
             @Override
             public void apply(PromiseError arg) throws OperationException {
-                notificationManager.notify(localization.unableOpenResource(path), FAIL, true);
+                notificationManager.notify(localization.unableOpenResource(path), FAIL, FLOAT_MODE);
 
                 if (actionCompletedCallback != null) {
                     actionCompletedCallback.onFailure(arg.getCause());
