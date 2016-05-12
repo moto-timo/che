@@ -33,6 +33,7 @@ import org.eclipse.che.api.project.server.type.ProjectTypeDef;
 import org.eclipse.che.api.project.server.type.ProjectTypeRegistry;
 import org.eclipse.che.api.project.server.type.ProjectTypeResolution;
 import org.eclipse.che.api.project.server.type.ValueStorageException;
+import org.eclipse.che.api.project.shared.dto.event.FileWatcherEventType;
 import org.eclipse.che.api.project.shared.dto.event.VfsWatchEvent;
 import org.eclipse.che.api.vfs.Path;
 import org.eclipse.che.api.vfs.VirtualFile;
@@ -40,7 +41,6 @@ import org.eclipse.che.api.vfs.VirtualFileFilter;
 import org.eclipse.che.api.vfs.VirtualFileSystem;
 import org.eclipse.che.api.vfs.VirtualFileSystemProvider;
 import org.eclipse.che.api.vfs.impl.file.FileTreeWatcher;
-import org.eclipse.che.api.vfs.impl.file.FileWatcherEventType;
 import org.eclipse.che.api.vfs.impl.file.FileWatcherNotificationHandler;
 import org.eclipse.che.api.vfs.impl.file.FileWatcherNotificationListener;
 import org.eclipse.che.api.vfs.search.Searcher;
@@ -163,9 +163,9 @@ public final class ProjectManager {
     }
 
     /**
-     * @return all the getProjects
+     * @return all the projects
      * @throws ServerException
-     *         if getProjects are not initialized yet
+     *         if projects are not initialized yet
      */
     public List<RegisteredProject> getProjects() throws ServerException {
         return projectRegistry.getProjects();
@@ -175,7 +175,7 @@ public final class ProjectManager {
      * @param projectPath
      * @return project
      * @throws ServerException
-     *         if getProjects are not initialized yet
+     *         if projects are not initialized yet
      * @throws ServerException
      *         if project not found
      */
@@ -336,8 +336,6 @@ public final class ProjectManager {
         }
 
         final String name = folder.getPath().getName();
-        //WorkspaceConfig workspaceConfig = projectRegistry.getWorkspaceConfig();
-        //List<? extends ProjectConfig> getProjects = workspaceConfig.getProjects();
         for (ProjectConfig project : workspaceProjectsHolder.getProjects()) {
             if (normalizePath.equals(project.getPath())) {
                 // TODO Needed for factory project importing with keepDir. It needs to find more appropriate solution
@@ -414,7 +412,7 @@ public final class ProjectManager {
             item.delete();
         }
 
-        // delete child getProjects
+        // delete child projects
         projectRegistry.removeProjects(apath);
 
         workspaceProjectsHolder.sync(projectRegistry);

@@ -18,7 +18,7 @@ import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 
 import org.eclipse.che.api.core.model.project.ProjectConfig;
-import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
+import org.eclipse.che.ide.api.project.ProjectServiceClient;
 import org.eclipse.che.api.project.shared.dto.ItemReference;
 import org.eclipse.che.api.promises.client.Function;
 import org.eclipse.che.api.promises.client.FunctionException;
@@ -249,7 +249,7 @@ public class NodeManager {
                     return Collections.emptyList();
                 }
 
-                //fill workspace getProjects with loaded actual configs, temporary solution that will be replaced after GA release
+                //fill workspace projects with loaded actual configs, temporary solution that will be replaced after GA release
                 appContext.getWorkspace().getConfig().withProjects(new ArrayList<>(projects));
 
                 final Iterable<ProjectConfigDto> rootProjects = filter(projects, new Predicate<ProjectConfigDto>() {

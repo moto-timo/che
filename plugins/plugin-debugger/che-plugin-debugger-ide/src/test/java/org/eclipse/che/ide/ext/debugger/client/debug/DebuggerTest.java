@@ -14,8 +14,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.gwtmockito.GwtMockitoTestRunner;
 import com.google.web.bindery.event.shared.EventBus;
 
-import org.eclipse.che.api.machine.gwt.client.events.WsAgentStateEvent;
-import org.eclipse.che.api.machine.gwt.client.events.WsAgentStateHandler;
+import org.eclipse.che.ide.api.machine.events.WsAgentStateEvent;
+import org.eclipse.che.ide.api.machine.events.WsAgentStateHandler;
 import org.eclipse.che.api.promises.client.Function;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
@@ -25,7 +25,7 @@ import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.filetypes.FileType;
 import org.eclipse.che.ide.api.filetypes.FileTypeRegistry;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
-import org.eclipse.che.ide.debug.Breakpoint;
+import org.eclipse.che.ide.api.debug.Breakpoint;
 import org.eclipse.che.ide.debug.DebuggerDescriptor;
 import org.eclipse.che.ide.debug.DebuggerManager;
 import org.eclipse.che.ide.debug.DebuggerObserver;
@@ -186,7 +186,7 @@ public class DebuggerTest extends BaseTest {
         debugger.addObserver(observer);
 
         FileType fileType = mock(FileType.class);
-        doReturn(Collections.singletonList("application/java")).when(fileType).getMimeTypes();
+        doReturn("java").when(fileType).getExtension();
         doReturn(fileType).when(fileTypeRegistry).getFileTypeByFile(eq(file));
     }
 

@@ -15,6 +15,9 @@ import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.model.project.ProjectConfig;
+import org.eclipse.che.api.core.model.workspace.Workspace;
+import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
+import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.project.server.handlers.ProjectHandlerRegistry;
 import org.eclipse.che.api.project.server.handlers.ProjectInitHandler;
 import org.eclipse.che.api.project.server.type.BaseProjectType;
@@ -51,6 +54,7 @@ public class ProjectRegistry {
     private final ProjectTypeRegistry            projectTypeRegistry;
     private final ProjectHandlerRegistry         handlers;
     private final FolderEntry                    root;
+    private final EventService eventService;
 
     private boolean initialized;
 
@@ -58,7 +62,9 @@ public class ProjectRegistry {
     public ProjectRegistry(WorkspaceProjectsSyncer workspaceHolder,
                            VirtualFileSystemProvider vfsProvider,
                            ProjectTypeRegistry projectTypeRegistry,
-                           ProjectHandlerRegistry handlers) throws ServerException {
+                           ProjectHandlerRegistry handlers,
+                           EventService eventService) throws ServerException {
+        this.eventService = eventService;
         this.projects = new ConcurrentHashMap<>();
         this.workspaceHolder = workspaceHolder;
         this.vfs = vfsProvider.getVirtualFileSystem();
@@ -72,9 +78,8 @@ public class ProjectRegistry {
         //final Workspace workspace = workspaceHolder.getWorkspace();
 
         List<? extends ProjectConfig> projectConfigs = workspaceHolder.getProjects();
-        //= new ArrayList<>(workspace.getConfig().getProjects());
 
-        // take all the getProjects from ws's config
+        // take all the projects from ws's config
         for (ProjectConfig projectConfig : projectConfigs) {
             final String path = projectConfig.getPath();
             final VirtualFile vf = vfs.getRoot().getChild(Path.of(path));
@@ -87,7 +92,7 @@ public class ProjectRegistry {
         initialized = true;
 
         for (RegisteredProject project : projects.values()) {
-            // only for getProjects with sources
+            // only for projects with sources
             if(project.getBaseFolder() != null) {
                 fireInitHandlers(project);
             }
@@ -96,7 +101,7 @@ public class ProjectRegistry {
 
 
     /**
-     * @return all the registered getProjects
+     * @return all the registered projects
      */
     public List<RegisteredProject> getProjects() {
         checkInitializationState();
@@ -122,7 +127,7 @@ public class ProjectRegistry {
     /**
      * @param parentPath
      *         parent path
-     * @return child getProjects
+     * @return list projects of pojects 
      */
     public List<String> getProjects(String parentPath) {
         checkInitializationState();
@@ -194,7 +199,7 @@ public class ProjectRegistry {
     }
 
     /**
-     * Removes all getProjects on and under the incoming path.
+     * Removes all projects on and under the incoming path.
      *
      * @param path
      *         from where to remove
@@ -207,6 +212,7 @@ public class ProjectRegistry {
         getProjects(path).forEach(p -> Optional.ofNullable(projects.remove(p))
                                                .ifPresent(removed::add));
 
+        removed.forEach(registeredProject -> eventService.publish(new ProjectDeletedEvent(registeredProject.getPath())));
     }
 
     /*  ------------------------------------------ */
@@ -354,7 +360,7 @@ public class ProjectRegistry {
         return (path.startsWith("/")) ? path : "/".concat(path);
     }
 
-    /** Try to initialize getProjects from unconfigured folders on root. */
+    /** Try to initialize projects from unconfigured folders on root. */
     private void initUnconfiguredFolders() {
         try {
             for (FolderEntry folder : root.getChildFolders()) {

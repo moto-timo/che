@@ -16,6 +16,7 @@ import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.model.project.ProjectConfig;
 import org.eclipse.che.api.core.model.project.SourceStorage;
+import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.core.util.LineConsumerFactory;
 import org.eclipse.che.api.core.util.ValueHolder;
 import org.eclipse.che.api.project.server.importer.ProjectImporter;
@@ -283,7 +284,7 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
         ProjectConfig pc = new NewProjectConfig("/testUpdateProject", BaseProjectType.ID, null, "name", "descr", null, null);
         RegisteredProject p = pm.createProject(pc, null);
 
-        assertEquals(BaseProjectType.ID , p.getType());
+        assertEquals(BaseProjectType.ID, p.getType());
         assertEquals("name", p.getName());
 
         attributes.put("pt2-var2", new AttributeValue("updated").getList());
@@ -386,6 +387,23 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
 
     }
 
+    @Test
+    public void testDeleteProjectEvent() throws Exception {
+
+        ProjectConfig pc = new NewProjectConfig("/testDeleteProject", BaseProjectType.ID, null, "name", "descr", null, null);
+        pm.createProject(pc, null);
+
+        String[] deletedPath = new String[1];
+        eventService.subscribe(new EventSubscriber<ProjectDeletedEvent>() {
+            @Override
+            public void onEvent(ProjectDeletedEvent event) {deletedPath[0] = event.getProjectPath();}
+        });
+        pm.delete("/testDeleteProject");
+
+        assertEquals("/testDeleteProject", deletedPath[0]);
+
+    }
+
 
     @Test
     public void testImportProject() throws Exception {
@@ -447,7 +465,6 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
     }
 
 
-
     @Test
     public void testProvidedAttributesNotSerialized() throws Exception {
 
@@ -473,27 +490,6 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
         }
     }
 
-//    @Test
-//    public void testDetectedProjectsNotSerialized() throws Exception {
-//        Map<String, List<String>> attributes = new HashMap<>();
-//        attributes.put("pt2-var2", new AttributeValue("test2").getList());
-//        attributes.put("pt2-var1", new AttributeValue("test1").getList());
-//        ProjectConfig pc1 = new NewProjectConfig("/testDetectedProjectsNotSerialized1", "pt3", null, "name", "descr", attributes, null);
-//        ProjectConfig pc2 = new NewProjectConfig("/testDetectedProjectsNotSerialized2", "pt3", null, "name", "descr", attributes, null);
-//
-//        projectRegistry.putProject(pc1, null, true, true);
-//        projectRegistry.putProject(pc2, null, true, false);
-//
-//        // SPECS:
-//        // Only persisted getProjects should be persisted (no detected)
-//
-//        System.out.println(" >>> "+workspaceHolder.getProjects());
-//
-//        assertTrue(workspaceHolder.getProjects().size() == 0);
-//
-//        ProjectConfig persistedProjectConfig = workspaceHolder.getProjects().get(0);
-//        assertEquals("/testDetectedProjectsNotSerialized2", persistedProjectConfig.getPath());
-//    }
 
     @Test
     public void testSettableValueProvider() throws Exception {
@@ -558,15 +554,13 @@ public class ProjectManagerWriteTest extends WsAgentTestBase {
                 baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
+
             @Override
             public ImporterCategory getCategory() {
                 return ProjectImporter.ImporterCategory.ARCHIVE;
             }
         });
     }
-
-
-
 
 
 }

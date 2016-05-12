@@ -106,7 +106,7 @@ public class DeleteResourcesProcessor extends DeleteProcessor {
 	 * @see org.eclipse.ltk.core.refactoring.participants.RefactoringProcessor#checkInitialConditions(org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	public RefactoringStatus checkInitialConditions(IProgressMonitor pm) throws CoreException, OperationCanceledException {
-		// allow only getProjects or only non-getProjects to be selected;
+		// allow only projects or only non-projects to be selected;
 		// note that the selection may contain multiple types of resource
 		if (!(Resources.containsOnlyProjects(fResources) || Resources.containsOnlyNonProjects(fResources))) {
 			return RefactoringStatus.createFatalErrorStatus(RefactoringCoreMessages.DeleteResourcesProcessor_delete_error_mixed_types);

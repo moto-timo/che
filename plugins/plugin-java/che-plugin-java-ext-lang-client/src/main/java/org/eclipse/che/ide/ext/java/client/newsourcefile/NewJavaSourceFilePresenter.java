@@ -14,7 +14,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
+import org.eclipse.che.ide.api.project.ProjectServiceClient;
 import org.eclipse.che.api.project.shared.dto.ItemReference;
 import org.eclipse.che.api.promises.client.Function;
 import org.eclipse.che.api.promises.client.FunctionException;
@@ -34,7 +34,7 @@ import org.eclipse.che.ide.project.node.FolderReferenceNode;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
 import org.eclipse.che.ide.rest.Unmarshallable;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.Arrays;

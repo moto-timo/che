@@ -24,7 +24,7 @@ import org.eclipse.che.api.project.server.handlers.ProjectInitHandler;
 import java.util.List;
 
 /**
- * Set {@link BaseProjectType} for all sub-getProjects.
+ * Set {@link BaseProjectType} for all sub-projects.
  *
  * @author Artem Zatsarynnyi
  */

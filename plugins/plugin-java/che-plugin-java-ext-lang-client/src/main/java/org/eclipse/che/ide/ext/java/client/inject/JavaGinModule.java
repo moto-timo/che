@@ -18,7 +18,6 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
-import org.eclipse.che.ide.MimeType;
 import org.eclipse.che.ide.api.extension.ExtensionGinModule;
 import org.eclipse.che.ide.api.filetypes.FileType;
 import org.eclipse.che.ide.api.preferences.PreferencePagePresenter;
@@ -30,6 +29,11 @@ import org.eclipse.che.ide.ext.java.client.CurrentClassFQNProvider;
 import org.eclipse.che.ide.ext.java.client.JavaResources;
 import org.eclipse.che.ide.ext.java.client.action.OrganizeImportsAction;
 import org.eclipse.che.ide.ext.java.client.action.ProposalAction;
+import org.eclipse.che.ide.ext.java.client.command.JavaCommandType;
+import org.eclipse.che.ide.ext.java.client.command.valueproviders.ClasspathProvider;
+import org.eclipse.che.ide.ext.java.client.command.valueproviders.MainClassProvider;
+import org.eclipse.che.ide.ext.java.client.command.valueproviders.OutputDirProvider;
+import org.eclipse.che.ide.ext.java.client.command.valueproviders.SourcepathProvider;
 import org.eclipse.che.ide.ext.java.client.dependenciesupdater.JavaClasspathServiceClient;
 import org.eclipse.che.ide.ext.java.client.dependenciesupdater.JavaClasspathServiceClientImpl;
 import org.eclipse.che.ide.ext.java.client.documentation.QuickDocPresenter;
@@ -57,6 +61,7 @@ import org.eclipse.che.ide.ext.java.client.settings.compiler.JavaCompilerPrefere
 import org.eclipse.che.ide.ext.java.client.settings.compiler.JavaCompilerPreferencePresenter;
 import org.eclipse.che.ide.ext.java.client.settings.property.PropertyWidget;
 import org.eclipse.che.ide.ext.java.client.settings.property.PropertyWidgetImpl;
+import org.eclipse.che.ide.extension.machine.client.command.CommandType;
 import org.eclipse.che.ide.extension.machine.client.command.valueproviders.CommandPropertyValueProvider;
 
 import static org.eclipse.che.ide.ext.java.client.action.OrganizeImportsAction.JAVA_ORGANIZE_IMPORT_ID;
@@ -90,6 +95,8 @@ public class JavaGinModule extends AbstractGinModule {
         GinMultibinder.newSetBinder(binder(), NodeInterceptor.class).addBinding().to(JavaClassInterceptor.class);
         GinMultibinder.newSetBinder(binder(), NodeInterceptor.class).addBinding().to(TestContentRootDecorator.class);
 
+        GinMultibinder.newSetBinder(binder(), CommandType.class).addBinding().to(JavaCommandType.class);
+
         GinMapBinder<String, FqnProvider> fqnProviders = GinMapBinder.newMapBinder(binder(), String.class, FqnProvider.class);
         fqnProviders.addBinding("maven").to(JavaFqnProvider.class);
 
@@ -106,6 +113,10 @@ public class JavaGinModule extends AbstractGinModule {
         bind(PreferencesManager.class).annotatedWith(JavaCompilerPreferenceManager.class).to(ErrorsWarningsPreferenceManager.class);
         GinMultibinder.newSetBinder(binder(), PreferencesManager.class).addBinding().to(ErrorsWarningsPreferenceManager.class);
 
+        GinMultibinder.newSetBinder(binder(), CommandPropertyValueProvider.class).addBinding().to(ClasspathProvider.class);
+        GinMultibinder.newSetBinder(binder(), CommandPropertyValueProvider.class).addBinding().to(OutputDirProvider.class);
+        GinMultibinder.newSetBinder(binder(), CommandPropertyValueProvider.class).addBinding().to(MainClassProvider.class);
+        GinMultibinder.newSetBinder(binder(), CommandPropertyValueProvider.class).addBinding().to(SourcepathProvider.class);
         GinMultibinder.newSetBinder(binder(), CommandPropertyValueProvider.class).addBinding().to(CurrentClassFQNProvider.class);
         GinMultibinder.newSetBinder(binder(), ClasspathPagePresenter.class).addBinding().to(LibEntryPresenter.class);
         GinMultibinder.newSetBinder(binder(), ClasspathPagePresenter.class).addBinding().to(SourceEntryPresenter.class);
@@ -115,21 +126,21 @@ public class JavaGinModule extends AbstractGinModule {
     @Singleton
     @Named("JavaFileType")
     protected FileType provideJavaFile() {
-        return new FileType("Java", JavaResources.INSTANCE.javaFile(), MimeType.TEXT_X_JAVA, "java");
+        return new FileType(JavaResources.INSTANCE.javaFile(), "java");
     }
 
     @Provides
     @Singleton
     @Named("JavaClassFileType")
     protected FileType provideJavaClassFile() {
-        return new FileType("Java Class", JavaResources.INSTANCE.javaFile(), MimeType.APPLICATION_JAVA_CLASS, "class");
+        return new FileType(JavaResources.INSTANCE.javaFile(), "class");
     }
 
     @Provides
     @Singleton
     @Named("JspFileType")
     protected FileType provideJspFile() {
-        return new FileType("Jsp", JavaResources.INSTANCE.jspFile(), MimeType.APPLICATION_JSP, "jsp");
+        return new FileType(JavaResources.INSTANCE.jspFile(), "jsp");
     }
 
 
@@ -137,6 +148,6 @@ public class JavaGinModule extends AbstractGinModule {
     @Singleton
     @Named("JsfFileType")
     protected FileType provideJsfFile() {
-        return new FileType("Jsf", JavaResources.INSTANCE.jsfFile(), MimeType.TEXT_X_JAVA, "jsf");
+        return new FileType(JavaResources.INSTANCE.jsfFile(), "jsf");
     }
 }

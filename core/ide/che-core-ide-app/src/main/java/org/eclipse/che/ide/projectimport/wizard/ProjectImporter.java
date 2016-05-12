@@ -16,7 +16,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 
-import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
+import org.eclipse.che.ide.api.project.ProjectServiceClient;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.Promise;
@@ -34,7 +34,7 @@ import org.eclipse.che.ide.api.project.wizard.ImportProjectNotificationSubscribe
 import org.eclipse.che.ide.api.project.wizard.ProjectNotificationSubscriber;
 import org.eclipse.che.ide.api.wizard.Wizard.CompleteCallback;
 import org.eclipse.che.ide.rest.RestContext;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.util.ExceptionUtils;
 import org.eclipse.che.security.oauth.OAuthStatus;
 
@@ -129,13 +129,19 @@ public class ProjectImporter extends AbstractImporter {
                     final Map<String, String> attributes = ExceptionUtils.getAttributes(exception.getCause());
                     final String providerName = attributes.get(PROVIDER_NAME);
                     final String authenticateUrl = attributes.get(AUTHENTICATE_URL);
+                    final boolean authenticated = Boolean.parseBoolean(attributes.get("authenticated"));
                     if (!Strings.isNullOrEmpty(providerName) && !Strings.isNullOrEmpty(authenticateUrl)) {
-                        tryAuthenticateRepeatImport(providerName,
-                                                    authenticateUrl,
-                                                    pathToProject,
-                                                    projectName,
-                                                    sourceStorage,
-                                                    subscriber);
+                        if (!authenticated) {
+                            tryAuthenticateRepeatImport(providerName,
+                                                        authenticateUrl,
+                                                        pathToProject,
+                                                        projectName,
+                                                        sourceStorage,
+                                                        subscriber);
+                        } else {
+                          dialogFactory.createMessageDialog(localizationConstant.importProjectSshKeyUploadFailedTitle(),
+                                                            localizationConstant.importProjectSshKeyUploadFailedText(), null).show();
+                        }
                     } else {
                         dialogFactory.createMessageDialog(localizationConstant.oauthFailedToGetAuthenticatorTitle(),
                                                           localizationConstant.oauthFailedToGetAuthenticatorText(), null).show();

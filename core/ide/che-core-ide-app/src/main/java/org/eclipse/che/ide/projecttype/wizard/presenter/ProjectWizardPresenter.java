@@ -16,8 +16,8 @@ import com.google.inject.Singleton;
 
 import org.eclipse.che.api.project.shared.dto.AttributeDto;
 import org.eclipse.che.api.project.shared.dto.ItemReference;
-import org.eclipse.che.api.project.shared.dto.ProjectTemplateDescriptor;
 import org.eclipse.che.api.project.shared.dto.ProjectTypeDto;
+import org.eclipse.che.api.project.templates.shared.dto.ProjectTemplateDescriptor;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
 import org.eclipse.che.commons.annotation.Nullable;
@@ -30,7 +30,7 @@ import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.projecttype.wizard.ProjectWizard;
 import org.eclipse.che.ide.projecttype.wizard.ProjectWizardFactory;
 import org.eclipse.che.ide.projecttype.wizard.categoriespage.CategoriesPagePresenter;
-import org.eclipse.che.ide.ui.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 
 import javax.validation.constraints.NotNull;
 import java.util.Collections;

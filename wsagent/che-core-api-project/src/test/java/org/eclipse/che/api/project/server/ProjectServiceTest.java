@@ -204,7 +204,7 @@ public class ProjectServiceTest {
 
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
 
-        projectRegistry = new ProjectRegistry(workspaceHolder, vfsProvider, ptRegistry, phRegistry);
+        projectRegistry = new ProjectRegistry(workspaceHolder, vfsProvider, ptRegistry, phRegistry, eventService);
         projectRegistry.initProjects();
 
         FileWatcherNotificationHandler fileWatcherNotificationHandler = new DefaultFileWatcherNotificationHandler(vfsProvider);
@@ -280,48 +280,8 @@ public class ProjectServiceTest {
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
 
         env = org.eclipse.che.commons.env.EnvironmentContext.getCurrent();
-//        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups, false));
-//        env.setWorkspaceName(workspace);
-//        env.setWorkspaceId(workspace);
     }
 
-
-//    private static class TestWorkspaceHolder extends WorkspaceHolder {
-//        private TestWorkspaceHolder() throws ServerException {
-//            super(DtoFactory.newDto(WorkspaceDto.class).withId("id")
-//                            .withConfig(DtoFactory.newDto(WorkspaceConfigDto.class)
-//                                                  .withName("name")
-//                                                  .withProjects(new ArrayList<>())));
-//        }
-//
-//
-//        @Override
-//        public void sync(ProjectRegistry projectRegistry) throws ServerException {
-//
-//        }
-//
-//
-////        @Override
-////        void addProject(RegisteredProject project) throws ServerException {
-////            if (!project.isDetected()) {
-////                workspace.addProject(project);
-////            }
-////        }
-////
-////        @Override
-////        public void updateProject(RegisteredProject project) throws ServerException {
-////            if (!project.isDetected()) {
-////                workspace.updateProject(project);
-////            }
-////        }
-////
-////        @Override
-////        void removeProjects(Collection<RegisteredProject> getProjects) throws ServerException {
-////            getProjects.stream()
-////                    .filter(project -> !project.isDetected())
-////                    .forEach(workspace::removeProject);
-////        }
-//    }
 
     private static class TestSearcherProvider implements SearcherProvider {
 
@@ -1977,7 +1937,7 @@ public class ProjectServiceTest {
 //                                                           .withName("module1")
 //                                                           .withDescription("module description")
 //                                                           .withType("module_type");
-//        //getProjects.add(newProjectConfig);
+//        //projects.add(newProjectConfig);
 //        //modules.add(newModuleConfig);
 //
 //        Map<String, List<String>> headers = new HashMap<>();

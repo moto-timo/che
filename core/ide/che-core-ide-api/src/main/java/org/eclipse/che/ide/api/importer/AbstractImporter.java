@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.eclipse.che.ide.api.importer;
 
-import org.eclipse.che.api.project.gwt.client.ProjectServiceClient;
+import org.eclipse.che.ide.api.project.ProjectServiceClient;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.Promise;
@@ -22,7 +22,7 @@ import org.eclipse.che.ide.api.project.wizard.ImportProjectNotificationSubscribe
 import javax.validation.constraints.NotNull;
 
 /**
- * The general class for all importers. The class contains business logic which allows add and remove getProjects in list getProjects
+ * The general class for all importers. The class contains business logic which allows add and remove projects in list getProjects
  * which are in importing state. The project is added in special list before import starts and removed from list when import finishes or
  * some exception occurs.
  *

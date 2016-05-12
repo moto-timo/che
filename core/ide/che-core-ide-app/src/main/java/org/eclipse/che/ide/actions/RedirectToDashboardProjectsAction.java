@@ -18,13 +18,13 @@ import org.eclipse.che.ide.api.action.Action;
 import org.eclipse.che.ide.api.action.ActionEvent;
 
 /**
- * Open a new dashboard window with information about the getProjects
+ * Open a new dashboard window with information about the projects
  *
  * @author Oleksii Orel
  */
 public class RedirectToDashboardProjectsAction extends Action {
 
-    private static final String REDIRECT_URL = "/dashboard/#/getProjects";
+    private static final String REDIRECT_URL = "/dashboard/#/projects";
 
     @Inject
     public RedirectToDashboardProjectsAction(CoreLocalizationConstant localization) {
