@@ -10,55 +10,51 @@
  *******************************************************************************/
 package org.eclipse.che.api.user.server.dao;
 
+import org.eclipse.che.api.core.model.user.Profile;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * @author Eugene Voevodin
+ * Data object for the {@link Profile}.
+ *
+ * @author Yevhenii Voevodin
  */
-public class Profile {
+public class ProfileImpl {
 
     private String              id;
-    private String              userId;
+    private String              email;
     private Map<String, String> attributes;
 
-    public Profile() {}
-
-    public Profile(String id) {
+    public ProfileImpl(String id, String email) {
         this.id = id;
-        this.userId = id;
+        this.email = email;
+    }
+
+    public ProfileImpl(String id, String email, Map<String, String> attributes) {
+        this.id = id;
+        this.email = email;
+        if (attributes != null) {
+            this.attributes = new HashMap<>(attributes);
+        }
+    }
+
+    public ProfileImpl(Profile profile) {
+        this(profile.getId(), profile.getEmail(), profile.getAttributes());
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public Profile withId(String id) {
-        this.id = id;
-        return this;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public Profile withUserId(String userId) {
-        this.userId = userId;
-        return this;
+    public String getEmail() {
+        return email;
     }
 
     public Map<String, String> getAttributes() {
         if (attributes == null) {
-            attributes = new HashMap<>();
+            this.attributes = new HashMap<>();
         }
         return attributes;
     }
@@ -67,31 +63,35 @@ public class Profile {
         this.attributes = attributes;
     }
 
-    public Profile withAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
-        return this;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof Profile)) {
+        if (!(obj instanceof ProfileImpl)) {
             return false;
         }
-        final Profile other = (Profile)obj;
-        return Objects.equals(id, other.id) &&
-               Objects.equals(userId, other.userId) &&
-               Objects.equals(getAttributes(), other.getAttributes());
+        final ProfileImpl that = (ProfileImpl)obj;
+        return Objects.equals(id, that.id)
+               && Objects.equals(email, that.email)
+               && getAttributes().equals(that.getAttributes());
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
         hash = 31 * hash + Objects.hashCode(id);
-        hash = 31 * hash + Objects.hashCode(userId);
-        hash = 31 * hash + Objects.hashCode(attributes);
+        hash = 31 * hash + Objects.hashCode(email);
+        hash = 31 * hash + getAttributes().hashCode();
         return hash;
+    }
+
+    @Override
+    public String toString() {
+        return "ProfileImpl{" +
+               "id='" + id + '\'' +
+               ", email='" + email + '\'' +
+               ", attributes=" + attributes +
+               '}';
     }
 }
