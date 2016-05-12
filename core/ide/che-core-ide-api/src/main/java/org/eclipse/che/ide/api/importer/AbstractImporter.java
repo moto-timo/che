@@ -22,7 +22,7 @@ import org.eclipse.che.ide.api.project.wizard.ImportProjectNotificationSubscribe
 import javax.validation.constraints.NotNull;
 
 /**
- * The general class for all importers. The class contains business logic which allows add and remove projects in list getProjects
+ * The general class for all importers. The class contains business logic which allows add and remove projects in list projects
  * which are in importing state. The project is added in special list before import starts and removed from list when import finishes or
  * some exception occurs.
  *

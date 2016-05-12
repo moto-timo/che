@@ -31,7 +31,7 @@ import java.util.List;
 public interface ProjectServiceClient {
 
     /**
-     * Get all getProjects in current workspace.
+     * Get all projects in current workspace.
      *
      * @param workspaceId
      *         id of current workspace
