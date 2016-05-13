@@ -30,23 +30,15 @@ import org.eclipse.che.api.factory.server.builder.FactoryBuilder;
 import org.eclipse.che.api.factory.server.snippet.SnippetGenerator;
 import org.eclipse.che.api.factory.shared.dto.Author;
 import org.eclipse.che.api.factory.shared.dto.Factory;
-import org.eclipse.che.api.machine.shared.dto.LimitsDto;
-import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
-import org.eclipse.che.api.machine.shared.dto.MachineSourceDto;
 import org.eclipse.che.api.user.server.dao.UserDao;
 import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.server.model.impl.ProjectConfigImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceImpl;
-import org.eclipse.che.api.workspace.shared.dto.EnvironmentDto;
-import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
-import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
-import org.eclipse.che.api.workspace.shared.dto.WorkspaceConfigDto;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.NameGenerator;
 import org.eclipse.che.commons.lang.Pair;
 import org.eclipse.che.commons.lang.URLEncodedUtils;
 import org.eclipse.che.commons.user.User;
-import org.eclipse.che.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,22 +61,14 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static javax.ws.rs.core.HttpHeaders.CONTENT_DISPOSITION;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -655,142 +639,5 @@ public class FactoryService extends Service {
         }
     }
 
-    /**
-     * Build a factory for github resources by providing repository URL.
-     *
-     * @param githubUrl
-     *         the URL of the github repository that may as well include branch in the name and a subfolder
-     * @param uriInfo
-     *         url context
-     * @return the factory instance if it's found by id
-     * @throws NotFoundException
-     *         when the factory with specified id doesn't not found
-     * @throws ServerException
-     *         when any server errors occurs
-     * @throws BadRequestException
-     *         when the factory is invalid e.g. is expired
-     */
-    @GET
-    @Path("/github")
-    @Produces(APPLICATION_JSON)
-    @ApiOperation(value = "Get factory information by its id",
-                  notes = "Get JSON with factory information. Factory id is passed in a path parameter")
-    @ApiResponses({@ApiResponse(code = 200, message = "OK"),
-                   @ApiResponse(code = 400, message = "Failed to validate factory e.g. if it expired"),
-                   @ApiResponse(code = 500, message = "Internal server error")})
-    public Factory getGitHubFactory(@ApiParam(value = "Github URL indicating the repository or repository with given branch and a given folder")
-                              @QueryParam("url")
-                              String githubUrl,
-                              @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
-                                        allowableValues = "true,false",
-                                        defaultValue = "false")
-                              @DefaultValue("false")
-                              @QueryParam("validate")
-                              Boolean validate,
-                              @Context
-                              UriInfo uriInfo) throws NotFoundException, ServerException, BadRequestException {
-
-        // Check parameter
-        if (isNullOrEmpty(githubUrl)) {
-            throw new BadRequestException("github query parameter is missing");
-        }
-
-        // decode value
-        final String decodedGithubUrl;
-        try {
-             decodedGithubUrl = URLDecoder.decode(githubUrl, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new BadRequestException(String.format("Unable to decode value %s", githubUrl));
-        }
-
-        // use regexp to find repository details (repository name, project name and branch and subfolder)
-        final Pattern GITHUB_PATTERN = Pattern.compile("^(?:http)(?:s)?(?:\\:\\/\\/)github.com/(.*?)/(.*?)(?:/tree/(.*?)(?:/(.*?))?)?$");
-
-        // Apply github url to the regexp
-        Matcher matcher = GITHUB_PATTERN.matcher(decodedGithubUrl);
-        if (!matcher.matches()) {
-            throw new BadRequestException(String.format("The given github url %s is not a valid URL github url. It should start with https://github.com/<user>/<repo>", githubUrl));
-        }
-
-        // ok so now get matching group
-        int regexpGroupCount = matcher.groupCount();
-        if (regexpGroupCount < 2) {
-            throw new BadRequestException(String.format("The given github url %s is not a valid URL github url. It should start with https://github.com/<user>/<repo>", githubUrl));
-        }
-
-        String repoUser = matcher.group(1);
-        String repoName = matcher.group(2);
-        String branchName = null;
-        String subfolder = null;
-        if (regexpGroupCount == 4) {
-            branchName = matcher.group(3);
-            subfolder = matcher.group(4);
-        }
-
-        // build factory for the given github url
-        Map<String, String> parameters = new HashMap<>();
-        if (branchName != null) {
-            parameters.put("branch", branchName);
-        }
-        if (subfolder != null && !"/".equals(subfolder)) {
-            parameters.put("keepDir", subfolder);
-        }
-
-        // github location for the clone
-        String githubLocation = "https://github.com/".concat(repoUser).concat("/").concat(repoName);
-
-
-        // default
-        final String DEFAULT_DOCKER_FILE_LOCATION = "https://dockerfiles.codenvycorp.com/templates-4.0/factory/factory-dockerfile";
-
-        // use master if not specified
-        if (branchName == null) {
-            branchName = "master";
-        }
-
-        // check if repository contains a codenvy Dockerfile
-        String dockerFileLocation = null;
-        String githubDockerFileLocation = "https://raw.githubusercontent.com/".concat(repoUser).concat("/").concat(repoName).concat("/").concat(branchName).concat("/.codenvy.dockerfile");
-        HttpURLConnection httpURLConnection = null;
-        try {
-            httpURLConnection = (HttpURLConnection) new URL(githubDockerFileLocation).openConnection();
-            httpURLConnection.setConnectTimeout(30 * 1000);
-            final int responseCode = httpURLConnection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                dockerFileLocation = githubDockerFileLocation;
-            }
-        } catch (IOException ioe) {
-            LOG.debug("Unable to check if remote location {0} is available or not", githubDockerFileLocation);
-        } finally {
-            if (httpURLConnection != null) {
-                httpURLConnection.disconnect();
-            }
-        }
-
-        // apply default location if there is none
-        if (dockerFileLocation == null) {
-            dockerFileLocation = DEFAULT_DOCKER_FILE_LOCATION;
-        }
-
-        String envName = repoUser;
-
-        SourceStorageDto sourceStorageDto = newDto(SourceStorageDto.class).withLocation(githubLocation).withType("git").withParameters(parameters);
-        ProjectConfigDto projectConfig = newDto(ProjectConfigDto.class).withSource(sourceStorageDto).withName(repoName).withType("blank").withPath("/".concat(repoName));
-
-        LimitsDto limitsDto = newDto(LimitsDto.class).withRam(2000);
-        MachineSourceDto machineSourceDto = newDto(MachineSourceDto.class).withType("dockerfile").withLocation(dockerFileLocation);
-        MachineConfigDto machineConfigDto = newDto(MachineConfigDto.class).withLimits(limitsDto).withType("docker").withSource(machineSourceDto).withDev(true).withName("ws-machine");
-
-        EnvironmentDto environmentDto = newDto(EnvironmentDto.class).withName(envName).withMachineConfigs(singletonList(machineConfigDto));
-
-        final WorkspaceConfigDto workspaceConfig = newDto(WorkspaceConfigDto.class).withDefaultEnv(envName).withProjects(singletonList(projectConfig)).withEnvironments(singletonList(environmentDto)).withName(repoUser);
-        final Factory factory = newDto(Factory.class).withWorkspace(workspaceConfig).withV("4.0");
-        factory.setLinks(createLinks(factory, null, uriInfo));
-        if (validate) {
-            acceptValidator.validateOnAccept(factory);
-        }
-
-        return factory;
-    }
 
 }

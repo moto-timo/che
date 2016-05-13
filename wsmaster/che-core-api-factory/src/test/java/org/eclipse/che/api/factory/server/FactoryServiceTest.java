@@ -61,7 +61,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -70,7 +69,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.jayway.restassured.RestAssured.given;
@@ -1223,113 +1221,6 @@ public class FactoryServiceTest {
     }
 
 
-    @Test
-    public void shouldReturnGitHubSimpleFactory() throws Exception {
-
-        String githubUrl = "https://github.com/eclipse/che";
-        String encodedPath = URLEncoder.encode(githubUrl, "UTF-8");
-
-        // when
-        Response response = given().when().get(SERVICE_PATH + "/github/?url=" + encodedPath);
-
-        // then
-        assertEquals(response.getStatusCode(), 200);
-        Factory responseFactory = dto.createDtoFromJson(response.getBody()
-                                                                .asInputStream(), Factory.class);
-
-        // check we have a project and with github URL
-        WorkspaceConfigDto workspaceConfigDto = responseFactory.getWorkspace();
-        assertNotNull(workspaceConfigDto);
-        List<ProjectConfigDto> projects = workspaceConfigDto.getProjects();
-        assertNotNull(projects);
-        assertEquals(projects.size(), 1);
-
-        ProjectConfigDto projectConfigDto = projects.get(0);
-        assertNotNull(projects);
-        SourceStorageDto sourceStorageDto = projectConfigDto.getSource();
-        assertNotNull(sourceStorageDto);
-        assertEquals(sourceStorageDto.getType(), "git");
-        assertEquals(sourceStorageDto.getLocation(), githubUrl);
-        assertEquals(sourceStorageDto.getParameters(), Collections.emptyMap());
-
-    }
-
-
-
-    @Test
-    public void shouldReturnGitHubBranchFactory() throws Exception {
-
-        String githubUrl = "https://github.com/eclipse/che/tree/4.2.x";
-        String githubCloneUrl = "https://github.com/eclipse/che";
-        String githubBranch = "4.2.x";
-
-        String encodedPath = URLEncoder.encode(githubUrl, "UTF-8");
-
-        // when
-        Response response = given().when().get(SERVICE_PATH + "/github/?url=" + encodedPath);
-
-        // then
-        assertEquals(response.getStatusCode(), 200);
-        Factory responseFactory = dto.createDtoFromJson(response.getBody()
-                                                                .asInputStream(), Factory.class);
-
-        // check we have a project and with github URL
-        WorkspaceConfigDto workspaceConfigDto = responseFactory.getWorkspace();
-        assertNotNull(workspaceConfigDto);
-        List<ProjectConfigDto> projects = workspaceConfigDto.getProjects();
-        assertNotNull(projects);
-        assertEquals(projects.size(), 1);
-
-        ProjectConfigDto projectConfigDto = projects.get(0);
-        assertNotNull(projects);
-        SourceStorageDto sourceStorageDto = projectConfigDto.getSource();
-        assertNotNull(sourceStorageDto);
-        assertEquals(sourceStorageDto.getType(), "git");
-        assertEquals(sourceStorageDto.getLocation(), githubCloneUrl);
-        Map<String, String> parameters = sourceStorageDto.getParameters();
-        assertEquals(parameters.size(), 1);
-        assertEquals(parameters.get("branch"), githubBranch);
-
-    }
-
-
-    @Test
-    public void shouldReturnGitHubBranchAndKeepdirFactory() throws Exception {
-
-        String githubUrl = "https://github.com/eclipse/che/tree/4.2.x/dashboard";
-        String githubCloneUrl = "https://github.com/eclipse/che";
-        String githubBranch = "4.2.x";
-        String githubKeepdir = "dashboard";
-
-        String encodedPath = URLEncoder.encode(githubUrl, "UTF-8");
-
-        // when
-        Response response = given().when().get(SERVICE_PATH + "/github/?url=" + encodedPath);
-
-        // then
-        assertEquals(response.getStatusCode(), 200);
-        Factory responseFactory = dto.createDtoFromJson(response.getBody()
-                                                                .asInputStream(), Factory.class);
-
-        // check we have a project and with github URL
-        WorkspaceConfigDto workspaceConfigDto = responseFactory.getWorkspace();
-        assertNotNull(workspaceConfigDto);
-        List<ProjectConfigDto> projects = workspaceConfigDto.getProjects();
-        assertNotNull(projects);
-        assertEquals(projects.size(), 1);
-
-        ProjectConfigDto projectConfigDto = projects.get(0);
-        assertNotNull(projects);
-        SourceStorageDto sourceStorageDto = projectConfigDto.getSource();
-        assertNotNull(sourceStorageDto);
-        assertEquals(sourceStorageDto.getType(), "git");
-        assertEquals(sourceStorageDto.getLocation(), githubCloneUrl);
-        Map<String, String> parameters = sourceStorageDto.getParameters();
-        assertEquals(parameters.size(), 2);
-        assertEquals(parameters.get("branch"), githubBranch);
-        assertEquals(parameters.get("keepDir"), githubKeepdir);
-
-    }
 
 
     private Factory prepareFactoryWithGivenStorage(String type, String location) {

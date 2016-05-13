@@ -17,22 +17,23 @@ import com.google.inject.Singleton;
 import com.google.web.bindery.event.shared.EventBus;
 
 import org.eclipse.che.api.core.model.workspace.WorkspaceStatus;
-import org.eclipse.che.ide.api.factory.FactoryServiceClient;
 import org.eclipse.che.api.factory.shared.dto.Factory;
-import org.eclipse.che.ide.api.machine.MachineManager;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.Promise;
 import org.eclipse.che.api.promises.client.PromiseError;
-import org.eclipse.che.ide.api.workspace.WorkspaceServiceClient;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
 import org.eclipse.che.ide.CoreLocalizationConstant;
 import org.eclipse.che.ide.actions.WorkspaceSnapshotCreator;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.component.Component;
 import org.eclipse.che.ide.api.dialogs.DialogFactory;
+import org.eclipse.che.ide.api.factory.ExternalFactoryServiceClient;
+import org.eclipse.che.ide.api.factory.FactoryServiceClient;
+import org.eclipse.che.ide.api.machine.MachineManager;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.preferences.PreferencesManager;
+import org.eclipse.che.ide.api.workspace.WorkspaceServiceClient;
 import org.eclipse.che.ide.collections.Jso;
 import org.eclipse.che.ide.collections.js.JsoArray;
 import org.eclipse.che.ide.context.BrowserQueryFieldRenderer;
@@ -47,7 +48,9 @@ import org.eclipse.che.ide.workspace.create.CreateWorkspacePresenter;
 import org.eclipse.che.ide.workspace.start.StartWorkspacePresenter;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import static org.eclipse.che.api.core.model.workspace.WorkspaceStatus.RUNNING;
 import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
@@ -61,14 +64,19 @@ import static org.eclipse.che.ide.api.notification.StatusNotification.Status.FAI
  */
 @Singleton
 public class FactoryWorkspaceComponent extends WorkspaceComponent implements Component {
+
+
     private final FactoryServiceClient factoryServiceClient;
-    private String                     workspaceId;
+
+    private String                            workspaceId;
+    private Set<ExternalFactoryServiceClient> externalFactoryServiceClients;
 
     @Inject
     public FactoryWorkspaceComponent(WorkspaceServiceClient workspaceServiceClient,
                                      CreateWorkspacePresenter createWorkspacePresenter,
                                      StartWorkspacePresenter startWorkspacePresenter,
                                      FactoryServiceClient factoryServiceClient,
+                                     ExternalFactoryServiceClientsHolder externalFactoryServiceClientsHolder,
                                      CoreLocalizationConstant locale,
                                      DtoUnmarshallerFactory dtoUnmarshallerFactory,
                                      EventBus eventBus,
@@ -101,6 +109,7 @@ public class FactoryWorkspaceComponent extends WorkspaceComponent implements Com
               initialLoadingInfo,
               snapshotCreator);
         this.factoryServiceClient = factoryServiceClient;
+        this.externalFactoryServiceClients = externalFactoryServiceClientsHolder.externalFactoryServiceClients;
     }
 
     @Override
@@ -138,14 +147,27 @@ public class FactoryWorkspaceComponent extends WorkspaceComponent implements Com
                     }
                 };
 
-        // now search if it's a factory based on id or from url
+        // now search if it's a factory based on id or from external provider
         if (factoryParameters.containsKey("id")) {
             factoryServiceClient.getFactory(factoryParameters.get("id"), true, asyncRequestCallback);
-        } else if (factoryParameters.containsKey("github")) {
-            factoryServiceClient.getFactoryGithub(factoryParameters.get("github"), true, asyncRequestCallback);
         } else {
-            // invalid mode not handled
-            notificationManager.notify(locale.failedToLoadFactory(), locale.failedToLoadFactoryConfiguration(), FAIL, FLOAT_MODE);
+
+            // search a matching provider
+            boolean accepted = false;
+            ExternalFactoryServiceClient externalFactoryServiceClient = null;
+            Iterator<ExternalFactoryServiceClient> itExternalFactoryServiceClient = externalFactoryServiceClients.iterator();
+            while (!accepted && itExternalFactoryServiceClient.hasNext()) {
+                externalFactoryServiceClient = itExternalFactoryServiceClient.next();
+                accepted = externalFactoryServiceClient.accept(factoryParameters);
+            }
+
+            // found a matching provider, delegate
+            if (accepted) {
+                externalFactoryServiceClient.getFactory(factoryParameters, true, asyncRequestCallback);
+            } else {
+                // no provider to handle it
+                notificationManager.notify(locale.failedToLoadFactory(), locale.failedToLoadFactoryConfiguration(), FAIL, FLOAT_MODE);
+            }
         }
     }
 
@@ -190,6 +212,13 @@ public class FactoryWorkspaceComponent extends WorkspaceComponent implements Com
     private Promise<WorkspaceDto> getWorkspaceToStart() {
         // get workspace from the given id
         return this.workspaceServiceClient.getWorkspace(workspaceId);
+    }
+
+    /**
+     * Holder class used to apply optional injection
+     */
+    static class ExternalFactoryServiceClientsHolder {
+        @Inject(optional=true) Set<ExternalFactoryServiceClient> externalFactoryServiceClients;
     }
 
 }
