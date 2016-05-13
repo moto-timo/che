@@ -470,8 +470,8 @@ public class DockerInstanceProvider implements InstanceProvider {
         }
     }
 
-    // workspaceId parameter is required because to obtain the token in the case of separate storage
-    // for tokens you need to know exactly which workspace and which user to apply the token.
+    // workspaceId parameter is required, because in case of separate storage for tokens
+    // you need to know exactly which workspace and which user to apply the token.
     protected String getUserToken(String wsId) {
         return EnvironmentContext.getCurrent().getUser().getToken();
     }
