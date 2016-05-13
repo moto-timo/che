@@ -17,6 +17,7 @@ import org.eclipse.che.api.user.server.dao.User;
 import org.eclipse.che.api.user.shared.dto.UserDescriptor;
 import org.eclipse.che.api.user.shared.dto.UserInRoleDescriptor;
 import org.eclipse.che.commons.json.JsonHelper;
+import org.eclipse.che.commons.subject.Subject;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
@@ -119,10 +120,10 @@ public class UserServiceTest {
 
         when(uriInfo.getBaseUriBuilder()).thenReturn(new UriBuilderImpl());
 
-        org.eclipse.che.commons.env.EnvironmentContext.getCurrent().setUser(new org.eclipse.che.commons.user.User() {
+        org.eclipse.che.commons.env.EnvironmentContext.getCurrent().setSubject(new Subject() {
 
             @Override
-            public String getName() {
+            public String getUserName() {
                 return user.getEmail();
             }
 
@@ -142,7 +143,7 @@ public class UserServiceTest {
             }
 
             @Override
-            public String getId() {
+            public String getUserId() {
                 return user.getId();
             }
 

@@ -8,14 +8,19 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.commons.user;
+package org.eclipse.che.commons.subject;
 
-/** @author andrew00x */
-public interface User {
-    /** Unidentified user */
-    User ANONYMOUS = new User() {
+/**
+ * Subject represents authenticated user
+ *
+ * @author andrew00x
+ * @author Sergii Leschenko
+ */
+public interface Subject {
+    /** Unidentified subject */
+    Subject ANONYMOUS = new Subject() {
         @Override
-        public String getName() {
+        public String getUserName() {
             return "Anonymous";
         }
 
@@ -35,7 +40,7 @@ public interface User {
         }
 
         @Override
-        public String getId() {
+        public String getUserId() {
             return "0000-00-0000";
         }
 
@@ -45,42 +50,43 @@ public interface User {
         }
     };
 
-    /** Get user name. */
-    String getName();
+    /**
+     * Get user unique identifier.
+     *
+     * <p>Note: In comparison with name id never changes for the given user.
+     *
+     * @return unique identifier of user.
+     */
+    String getUserId();
 
     /**
-     * Check is user in specified {@code role}.
+     * @return name of user
+     */
+    String getUserName();
+
+    /**
+     * Check is subject in specified {@code role}.
      *
      * @param role
      *         role name to check
-     * @return {@code true} if user in role and {@code false} otherwise
+     * @return {@code true} if subject in role and {@code false} otherwise
      */
     boolean isMemberOf(String role);
 
     /**
-     * Check does user have specified permission.
+     * Check does subject have specified permission.
      *
-     * @return {@code true} if user has permission to perform given action and {@code false} otherwise
+     * @return {@code true} if subject has permission to perform given action and {@code false} otherwise
      */
     boolean hasPermission(String domain, String instance, String action);
 
     /**
-     * Get user auth token to be able to execute request as user
-     *
-     * @return - user token
+     * @return subject auth token to be able to execute request as subject
      */
     String getToken();
 
     /**
-     * Get user unique identifier of user.
-     * In comparison with name id never changes for the given user.
-     *
-     * @return - unique identifier of user.
-     */
-    String getId();
-
-    /**
-     * @return - true if user is temporary, false if this is a real persistent user.
+     * @return - true if subject is temporary, false if this is a real persistent subject.
      */
     boolean isTemporary();
 }

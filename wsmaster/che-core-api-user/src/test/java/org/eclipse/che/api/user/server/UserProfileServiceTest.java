@@ -21,6 +21,7 @@ import org.eclipse.che.api.user.server.dao.UserDao;
 import org.eclipse.che.api.user.server.dao.UserProfileDao;
 import org.eclipse.che.api.user.shared.dto.ProfileDescriptor;
 import org.eclipse.che.commons.json.JsonHelper;
+import org.eclipse.che.commons.subject.Subject;
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerRequest;
@@ -133,10 +134,10 @@ public class UserProfileServiceTest {
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(email));
         when(userDao.getByAlias(email)).thenReturn(testUser);
         when(userDao.getById(id)).thenReturn(testUser);
-        org.eclipse.che.commons.env.EnvironmentContext.getCurrent().setUser(new org.eclipse.che.commons.user.User() {
+        org.eclipse.che.commons.env.EnvironmentContext.getCurrent().setSubject(new Subject() {
 
             @Override
-            public String getName() {
+            public String getUserName() {
                 return testUser.getEmail();
             }
 
@@ -156,7 +157,7 @@ public class UserProfileServiceTest {
             }
 
             @Override
-            public String getId() {
+            public String getUserId() {
                 return testUser.getId();
             }
 
