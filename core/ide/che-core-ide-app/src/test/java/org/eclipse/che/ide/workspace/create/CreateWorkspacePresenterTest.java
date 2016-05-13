@@ -13,7 +13,7 @@ package org.eclipse.che.ide.workspace.create;
 import com.google.gwt.core.client.Callback;
 import com.google.inject.Provider;
 
-import org.eclipse.che.api.machine.gwt.client.RecipeServiceClient;
+import org.eclipse.che.ide.api.machine.RecipeServiceClient;
 import org.eclipse.che.api.machine.shared.dto.CommandDto;
 import org.eclipse.che.api.machine.shared.dto.LimitsDto;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
@@ -23,7 +23,7 @@ import org.eclipse.che.api.machine.shared.dto.recipe.RecipeDescriptor;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.Promise;
 import org.eclipse.che.api.promises.client.PromiseError;
-import org.eclipse.che.api.workspace.gwt.client.WorkspaceServiceClient;
+import org.eclipse.che.ide.api.workspace.WorkspaceServiceClient;
 import org.eclipse.che.api.workspace.shared.dto.EnvironmentDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
@@ -148,7 +148,7 @@ public class CreateWorkspacePresenterTest {
 
         when(wsComponentProvider.get()).thenReturn(workspaceComponent);
 
-        when(recipeServiceClient.getRecipes(anyInt(), anyInt())).thenReturn(recipesPromise);
+        when(recipeServiceClient.getAllRecipes()).thenReturn(recipesPromise);
         when(view.getWorkspaceName()).thenReturn("test");
         when(view.getRecipeUrl()).thenReturn("recipe");
     }
@@ -295,13 +295,13 @@ public class CreateWorkspacePresenterTest {
         when(workspaceClient.create(Matchers.<WorkspaceConfigDto>anyObject(), anyString())).thenReturn(userWsPromise);
         when(userWsPromise.then(Matchers.<Operation<WorkspaceDto>>anyObject())).thenReturn(userWsPromise);
         when(userWsPromise.catchError(Matchers.<Operation<PromiseError>>anyObject())).thenReturn(userWsPromise);
-        when(recipeServiceClient.getRecipes(anyInt(), anyInt())).thenReturn(recipesPromise);
+        when(recipeServiceClient.getAllRecipes()).thenReturn(recipesPromise);
 
         presenter.show(Collections.singletonList(usersWorkspaceDto), componentCallback);
 
         presenter.onCreateButtonClicked();
 
-        verify(recipeServiceClient).getRecipes(anyInt(), anyInt());
+        verify(recipeServiceClient).getAllRecipes();
         verify(recipesPromise).then(Matchers.<Operation<List<RecipeDescriptor>>>anyObject());
 
         verify(view).show();

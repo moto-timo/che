@@ -17,8 +17,8 @@ import com.google.gwt.user.client.Timer;
 import com.google.inject.Inject;
 import com.google.web.bindery.event.shared.EventBus;
 
-import org.eclipse.che.api.machine.gwt.client.MachineServiceClient;
-import org.eclipse.che.api.machine.gwt.client.RecipeServiceClient;
+import org.eclipse.che.ide.api.machine.MachineServiceClient;
+import org.eclipse.che.ide.api.machine.RecipeServiceClient;
 import org.eclipse.che.api.machine.shared.dto.LimitsDto;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
 import org.eclipse.che.api.machine.shared.dto.MachineDto;
@@ -31,7 +31,7 @@ import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.Promise;
 import org.eclipse.che.api.promises.client.PromiseError;
-import org.eclipse.che.api.workspace.gwt.client.WorkspaceServiceClient;
+import org.eclipse.che.ide.api.workspace.WorkspaceServiceClient;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.notification.StatusNotification;
@@ -474,7 +474,6 @@ public class TargetsPresenter implements TargetsView.ActionDelegate {
                 .withType(selectedTarget.getRecipe().getType())
                 .withTags(selectedTarget.getRecipe().getTags())
                 .withDescription(selectedTarget.getRecipe().getDescription())
-                .withPermissions(selectedTarget.getRecipe().getPermissions())
                 .withScript("{" +
                         "\"host\": \"" + selectedTarget.getHost() + "\", " +
                         "\"port\": \"" + selectedTarget.getPort() + "\", " +
