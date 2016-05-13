@@ -40,8 +40,14 @@ public interface User {
     String getName();
 
     /**
-     * Returns the list of the user's aliases(including email and name).
-     * That list may contain any values related to the user's identity (e.g. github profile id).
+     * Returns the list of the user's aliases, the aliases are the values
+     * which identify user in the system with third party ids (e.g. if user is registered
+     * within google oauth the aliases list may contain 'google:user_identifier' alias).
+     *
+     * <p>Note that user's {@link #getEmail() email} and {@link #getName() name}
+     * are not a part of the result, and returned list never contains those values.
+     * Also note that returned aliases are unique, so there are no two users
+     * who have the alias in common.
      */
     List<String> getAliases();
 

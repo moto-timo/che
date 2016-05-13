@@ -16,56 +16,66 @@ import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.UnauthorizedException;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link User} data. The implementation is not
- * required to be responsible for persistent layer data dto integrity. It simply transfers data from one layer to another, so if
- * you're going to call any of implemented methods it is considered that all needed verifications are already done. <p>
- * <strong>Note:</strong> This particularly does not mean that method call will not make any inconsistency, but this
- * mean that such kind of inconsistencies are expected by design and may be treated further. </p>
+ * Defies data access object contract for {@link UserImpl}.
+ *
+ * <p>The implementation is not required to be responsible for persistent layer
+ * data dto integrity. It simply transfers data from one layer to another,
+ * so if you're going to call any of implemented methods it is considered
+ * that all needed verifications are already done.
+ *
+ * <p><strong>Note:</strong> This particularly does not mean that
+ * method call will not make any inconsistency, but this mean that
+ * such kind of inconsistencies are expected by design and may be treated further.
+ *
+ * @author Yevhenii Voevodin
  */
 public interface UserDao {
 
     /**
-     * Authenticate user.
+     * // TODO consider removing this method from dao
+     * Gets user by his email/alias/name and password.
      *
-     * @param alias
-     *         user name or alias
+     * @param emailOrAliasOrName
+     *         one of the user identifiers such as email/name/alias
      * @param password
      *         password
-     * @return user id when authentication success
+     * @return user identifier
+     * @throws NullPointerException
+     *         when either {@code emailOrAliasOrName} or {@code password} is null
      * @throws UnauthorizedException
-     *         when authentication failed or no such user exists
+     *         when user with such {@code aliasOrName} and {@code password} doesn't exist
      * @throws ServerException
      *         when any other error occurs
-     *
      */
-    String authenticate(String alias, String password) throws UnauthorizedException, ServerException;
+    String authenticate(String emailOrAliasOrName, String password) throws UnauthorizedException, ServerException;
 
     /**
-     * Adds user to persistent layer.
+     * Creates a new user.
      *
      * @param user
-     *         - POJO representation of user entity
+     *         user to create
+     * @throws NullPointerException
+     *         when {@code user} is null
      * @throws ConflictException
-     *         when given user cannot be created
+     *         when user with such id/alias/name already exists
      * @throws ServerException
      *         when any other error occurs
      */
-    void create(User user) throws ConflictException, ServerException;
+    void create(UserImpl user) throws ConflictException, ServerException;
 
     /**
-     * Updates already present in persistent layer user.
+     * Updates user by replacing an existing entity with a new one.
      *
      * @param user
-     *         POJO representation of user entity
+     *         user to update
      * @throws NotFoundException
      *         when user is not found
      * @throws ConflictException
      *         when given user cannot be updated
      * @throws ServerException
      *         when any other error occurs
-     *
      */
-    void update(User user) throws NotFoundException, ServerException, ConflictException;
+    void update(UserImpl user) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Removes user from persistent layer by his identifier.
@@ -90,7 +100,7 @@ public interface UserDao {
      * @throws ServerException
      *         when any other error occurs
      */
-    User getByAlias(String alias) throws NotFoundException, ServerException;
+    UserImpl getByAlias(String alias) throws NotFoundException, ServerException;
 
     /**
      * Gets user from persistent layer by his identifier
@@ -103,7 +113,7 @@ public interface UserDao {
      * @throws ServerException
      *         when any other error occurs
      */
-    User getById(String id) throws NotFoundException, ServerException;
+    UserImpl getById(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets user from persistent layer by his username
@@ -116,5 +126,5 @@ public interface UserDao {
      * @throws ServerException
      *         when any other error occurs
      */
-    User getByName(String userName) throws NotFoundException, ServerException;
+    UserImpl getByName(String userName) throws NotFoundException, ServerException;
 }
