@@ -23,4 +23,13 @@ public interface Location {
      * The line number in a file or in a class.
      */
     int getLineNumber();
+
+
+
+    //we need it only for java, need think how normally integrate this in the api
+    boolean isBinary();
+
+    int getLibId();
+
+    String getProjectPath();
 }

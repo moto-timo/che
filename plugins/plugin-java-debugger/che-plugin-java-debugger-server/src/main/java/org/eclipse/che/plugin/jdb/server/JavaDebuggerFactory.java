@@ -6,7 +6,7 @@
  * http://www.eclipse.org/legal/epl-v10.html
  *
  * Contributors:
- *   Codenvy, S.A. - initial API and implementation
+ * Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
 package org.eclipse.che.plugin.jdb.server;
 
@@ -53,6 +53,11 @@ public class JavaDebuggerFactory implements DebuggerFactory {
             throw new DebuggerException("Unknown port property format: " + portProp);
         }
 
-        return new JavaDebugger(host, port, debuggerCallback);
+        String projectPath = normalizedProps.get("project_path");
+        if (projectPath == null) {
+            throw new DebuggerException("Can't establish connection: projectPath property is unknown.");
+        }
+
+        return new JavaDebugger(host, port, projectPath, debuggerCallback);
     }
 }

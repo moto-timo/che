@@ -116,6 +116,10 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.che.plugin</groupId>
+            <artifactId>che-plugin-java-ext-lang-client</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <testSourceDirectory>src/test/java</testSourceDirectory>

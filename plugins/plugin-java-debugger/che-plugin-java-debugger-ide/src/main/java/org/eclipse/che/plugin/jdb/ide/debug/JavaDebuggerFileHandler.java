@@ -10,35 +10,21 @@
  *******************************************************************************/
 package org.eclipse.che.plugin.jdb.ide.debug;
 
-import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.Inject;
 import com.google.web.bindery.event.shared.EventBus;
 
-import org.eclipse.che.api.promises.client.Operation;
-import org.eclipse.che.api.promises.client.OperationException;
-import org.eclipse.che.api.promises.client.PromiseError;
+import org.eclipse.che.api.debug.shared.model.Location;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.editor.EditorAgent;
-import org.eclipse.che.ide.api.editor.EditorPartPresenter;
 import org.eclipse.che.ide.api.event.FileEvent;
-import org.eclipse.che.ide.api.project.node.HasStorablePath;
-import org.eclipse.che.ide.api.project.node.Node;
 import org.eclipse.che.ide.api.project.tree.VirtualFile;
-import org.eclipse.che.ide.debug.DebuggerManager;
 import org.eclipse.che.ide.dto.DtoFactory;
-import org.eclipse.che.plugin.debugger.ide.debug.ActiveFileHandler;
 import org.eclipse.che.ide.ext.java.client.project.node.JavaNodeManager;
 import org.eclipse.che.ide.ext.java.client.project.node.jar.JarFileNode;
 import org.eclipse.che.ide.ext.java.shared.JarEntry;
-import org.eclipse.che.ide.api.editor.document.Document;
-import org.eclipse.che.ide.api.editor.text.TextPosition;
-import org.eclipse.che.ide.api.editor.texteditor.TextEditorPresenter;
 import org.eclipse.che.ide.part.explorer.project.ProjectExplorerPresenter;
-import org.eclipse.che.ide.project.node.FileReferenceNode;
-
-import javax.validation.constraints.NotNull;
-import java.util.List;
+import org.eclipse.che.plugin.debugger.ide.debug.AbstractFileHandler;
 
 import static org.eclipse.che.ide.api.event.FileEvent.FileOperation.OPEN;
 
@@ -47,158 +33,86 @@ import static org.eclipse.che.ide.api.event.FileEvent.FileOperation.OPEN;
  *
  * @author Anatoliy Bazko
  */
-public class JavaDebuggerFileHandler implements ActiveFileHandler {
+public class JavaDebuggerFileHandler extends AbstractFileHandler {
 
-    private final DebuggerManager          debuggerManager;
-    private final EditorAgent              editorAgent;
-    private final DtoFactory               dtoFactory;
-    private final AppContext               appContext;
-    private final EventBus                 eventBus;
-    private final JavaNodeManager          javaNodeManager;
-    private final ProjectExplorerPresenter projectExplorer;
+    private final DtoFactory      dtoFactory;
+    private final AppContext      appContext;
+    private final EventBus        eventBus;
+    private final JavaNodeManager javaNodeManager;
 
     @Inject
-    public JavaDebuggerFileHandler(DebuggerManager debuggerManager,
-                                   EditorAgent editorAgent,
+    public JavaDebuggerFileHandler(EditorAgent editorAgent,
                                    DtoFactory dtoFactory,
                                    AppContext appContext,
                                    EventBus eventBus,
                                    JavaNodeManager javaNodeManager,
                                    ProjectExplorerPresenter projectExplorer) {
-        this.debuggerManager = debuggerManager;
-        this.editorAgent = editorAgent;
+        super(editorAgent, projectExplorer);
         this.dtoFactory = dtoFactory;
         this.appContext = appContext;
         this.eventBus = eventBus;
         this.javaNodeManager = javaNodeManager;
-        this.projectExplorer = projectExplorer;
     }
 
     @Override
-    public void openFile(final List<String> filePaths,
-                         final String className,
-                         final int lineNumber,
-                         final AsyncCallback<VirtualFile> callback) {
-        if (debuggerManager.getActiveDebugger() != debuggerManager.getDebugger(JavaDebugger.ID)) {
-            callback.onFailure(null);
-            return;
-        }
+    public void openFile(Location location, AsyncCallback<VirtualFile> callback) {
+//        if (debuggerManager.getActiveDebugger() != debuggerManager.getDebugger(JavaDebugger.ID)) {
+//            callback.onFailure(null);
+//            return;
+//        }
+//
+//        VirtualFile activeFile = null;
+//        final EditorPartPresenter activeEditor = editorAgent.getActiveEditor();
+//        if (activeEditor != null) {
+//            activeFile = activeEditor.getEditorInput().getFile();
+//        }
 
-        VirtualFile activeFile = null;
-        final EditorPartPresenter activeEditor = editorAgent.getActiveEditor();
-        if (activeEditor != null) {
-            activeFile = activeEditor.getEditorInput().getFile();
-        }
-
-        if (activeFile == null || !filePaths.contains(activeFile.getPath())) {
-            openFile(className, filePaths, 0, new AsyncCallback<VirtualFile>() {
-                @Override
-                public void onSuccess(VirtualFile result) {
-                    scrollEditorToExecutionPoint((TextEditorPresenter)editorAgent.getActiveEditor(), lineNumber);
-                    callback.onSuccess(result);
-                }
-
-                @Override
-                public void onFailure(Throwable caught) {
-                    callback.onFailure(caught);
-                }
-            });
-        } else {
-            scrollEditorToExecutionPoint((TextEditorPresenter)activeEditor, lineNumber);
-            callback.onSuccess(activeFile);
-        }
+//        if (activeFile == null || !filePaths.contains(activeFile.getPath())) {
+//            openFile(className, filePaths, 0, new AsyncCallback<VirtualFile>() {
+//                @Override
+//                public void onSuccess(VirtualFile result) {
+//                    scrollEditorToExecutionPoint((TextEditorPresenter)editorAgent.getActiveEditor(), lineNumber);
+//                    callback.onSuccess(result);
+//                }
+//
+//                @Override
+//                public void onFailure(Throwable caught) {
+//                    callback.onFailure(caught);
+//                }
+//            });
+//        } else {
+//            scrollEditorToExecutionPoint((TextEditorPresenter)activeEditor, lineNumber);
+//            callback.onSuccess(activeFile);
+//        }
     }
 
-    /**
-     * Tries to open file from the project.
-     * If fails then method will try to find resource from external dependencies.
-     */
-    private void openFile(@NotNull final String className,
-                          final List<String> filePaths,
-                          final int pathNumber,
-                          final AsyncCallback<VirtualFile> callback) {
-        if (pathNumber == filePaths.size()) {
-            callback.onFailure(new IllegalArgumentException("Can't open resource " + className));
-            return;
-        }
-
-        String filePath = filePaths.get(pathNumber);
-
-        if (!filePath.startsWith("/")) {
-            openExternalResource(className, callback);
-            return;
-        }
-
-        projectExplorer.getNodeByPath(new HasStorablePath.StorablePath(filePath)).then(new Operation<Node>() {
-            @Override
-            public void apply(final Node node) throws OperationException {
-                if (!(node instanceof FileReferenceNode)) {
-                    return;
-                }
-
-                handleActivateFile((VirtualFile)node, callback);
-                eventBus.fireEvent(new FileEvent((VirtualFile)node, OPEN));
-            }
-        }).catchError(new Operation<PromiseError>() {
-            @Override
-            public void apply(PromiseError error) throws OperationException {
-                // try another path
-                openFile(className, filePaths, pathNumber + 1, callback);
-            }
-        });
-    }
-
-    private void openExternalResource(String className, final AsyncCallback<VirtualFile> callback) {
+    private void openExternalResource(Location location, final AsyncCallback<VirtualFile> callback) {
+        String className = location.getTarget();
         JarEntry jarEntry = dtoFactory.createDto(JarEntry.class);
-        jarEntry.setPath(className);
+        jarEntry.setPath(className);//what hell?
         jarEntry.setName(className.substring(className.lastIndexOf(".") + 1) + ".class");
         jarEntry.setType(JarEntry.JarEntryType.CLASS_FILE);
 
-        final JarFileNode jarFileNode = javaNodeManager.getJavaNodeFactory()
-                                                       .newJarFileNode(jarEntry,
-                                                                       null,
-                                                                       appContext.getCurrentProject().getProjectConfig(),
-                                                                       javaNodeManager.getJavaSettingsProvider().getSettings());
+        JarFileNode jarFileNode = javaNodeManager.getJavaNodeFactory()
+                                                 .newJarFileNode(jarEntry,
+                                                                 null,
+                                                                 appContext.getCurrentProject().getProjectConfig(),
+                                                                 javaNodeManager.getJavaSettingsProvider().getSettings());
 
-        handleActivateFile(jarFileNode, callback);
-        eventBus.fireEvent(new FileEvent(jarFileNode, OPEN));
+        handleActivateFile(jarFileNode, location.getLineNumber(), callback);
+        eventBus.fireEvent(new FileEvent(jarFileNode, OPEN)); //todo we have a bug here!!!!!!!
     }
 
-    public void handleActivateFile(final VirtualFile virtualFile, final AsyncCallback<VirtualFile> callback) {
-        editorAgent.openEditor(virtualFile, new EditorAgent.OpenEditorCallback() {
-            @Override
-            public void onEditorOpened(EditorPartPresenter editor) {
-                new Timer() {
-                    @Override
-                    public void run() {
-                        callback.onSuccess(virtualFile);
-                    }
-                }.schedule(300);
-            }
-
-            @Override
-            public void onEditorActivated(EditorPartPresenter editor) {
-                new Timer() {
-                    @Override
-                    public void run() {
-                        callback.onSuccess(virtualFile);
-                    }
-                }.schedule(300);
-            }
-
-            @Override
-            public void onInitializationFailed() {
-                callback.onFailure(null);
-            }
-        });
-    }
-
-    private void scrollEditorToExecutionPoint(TextEditorPresenter editor, int lineNumber) {
-        Document document = editor.getDocument();
-
-        if (document != null) {
-            TextPosition newPosition = new TextPosition(lineNumber, 0);
-            document.setCursorPosition(newPosition);
+    private String prepareFQN(String fqn) {//todo maybe move to util class?
+        //handle fqn in case nested classes
+        if (fqn.contains("$")) {
+            return fqn.substring(0, fqn.indexOf("$"));
         }
+
+        //handle fqn in case lambda expression
+        if (fqn.contains("$$")) {//todo lyambda maybe $* ? we need check it
+            return fqn.substring(0, fqn.indexOf("$$"));
+        }
+        return fqn;
     }
 }

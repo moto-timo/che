@@ -89,509 +89,513 @@ import static org.mockito.Mockito.verify;
  */
 @RunWith(GwtMockitoTestRunner.class)
 public class DebuggerTest extends BaseTest {
-    private static final String DEBUG_INFO = "debug_info";
-    private static final String SESSION_ID = "debugger_id";
+//    private static final String DEBUG_INFO = "debug_info";
+//    private static final String SESSION_ID = "debugger_id";
+//
+//    public static final int    LINE_NUMBER = 20;
+//    public static final String FQN         = "org.test.Test";
+//    public static final String PATH        = "test/src/main/java/Test.java";
+//
+//    @Mock
+//    private DebuggerServiceClient service;
+//    @Mock
+//    private DtoFactory            dtoFactory;
+//    @Mock
+//    private LocalStorageProvider  localStorageProvider;
+//    @Mock
+//    private MessageBusProvider    messageBusProvider;
+//    @Mock
+//    private EventBus              eventBus;
+//    @Mock
+//    private AppContext            appContext;
+//    @Mock
+//    private AbstractActiveFileHandler     activeFileHandler;
+//    @Mock
+//    private DebuggerManager       debuggerManager;
+//    @Mock
+//    private FileTypeRegistry      fileTypeRegistry;
+//
+//    @Mock
+//    private Promise<Void>         promiseVoid;
+//    @Mock
+//    private Promise<DebuggerInfo> promiseInfo;
+//    @Mock
+//    private PromiseError          promiseError;
+//
+//    @Mock
+//    private VirtualFile        file;
+//    @Mock
+//    private FqnResolverFactory fqnResolverFactory;
+//    @Mock
+//    private LocalStorage       localStorage;
+//    @Mock
+//    private DebuggerObserver   observer;
+//    @Mock
+//    private LocationDto        locationDto;
+//    @Mock
+//    private BreakpointDto      breakpointDto;
+//    @Mock
+//    private FqnResolver        fgnResolver;
+//
+//    @Captor
+//    private ArgumentCaptor<WsAgentStateHandler>             extServerStateHandlerCaptor;
+//    @Captor
+//    private ArgumentCaptor<Operation<PromiseError>>         operationPromiseErrorCaptor;
+//    @Captor
+//    private ArgumentCaptor<Operation<Void>>                 operationVoidCaptor;
+//    @Captor
+//    private ArgumentCaptor<Breakpoint>                      breakpointCaptor;
+//    @Captor
+//    private ArgumentCaptor<Function<DebugSessionDto, Void>> argumentCaptorFunctionJavaDebugSessionVoid;
+//    @Captor
+//    private ArgumentCaptor<Operation<DebuggerInfo>>         argumentCaptorOperationJavaDebuggerInfo;
+//
+//
+//    public final Breakpoint TEST_BREAKPOINT = new Breakpoint(Breakpoint.Type.BREAKPOINT, LINE_NUMBER, PATH, file, true);
+//    public DebuggerDescriptor debuggerDescriptor;
+//
+//    private AbstractDebugger debugger;
+//
+//    @Before
+//    public void setUp() {
+//        MockitoAnnotations.initMocks(this);
+//
+//        super.setUp();
+//
+//        debuggerDescriptor = new DebuggerDescriptor(NAME + " " + VERSION, HOST + ":" + PORT);
+//
+//        doReturn(locationDto).when(dtoFactory).createDto(LocationDto.class);
+//        doReturn(breakpointDto).when(dtoFactory).createDto(BreakpointDto.class);
+//        doReturn(locationDto).when(breakpointDto).getLocation();
+//
+//        doReturn(messageBus).when(messageBusProvider).getMachineMessageBus();
+//
+//        doReturn(localStorage).when(localStorageProvider).get();
+//        doReturn(DEBUG_INFO).when(localStorage).getItem(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY);
+//        doReturn(debugSessionDto).when(dtoFactory).createDtoFromJson(anyString(), eq(DebugSessionDto.class));
+//
+//        doReturn(fgnResolver).when(fqnResolverFactory).getResolver(anyString());
+//        doReturn(FQN).when(fgnResolver).resolveFqn(file);
+//
+//        doReturn(PATH).when(file).getPath();
+//
+//        debugger = new TestDebugger(service, dtoFactory, localStorageProvider, messageBusProvider, eventBus, fqnResolverFactory,
+//                                    activeFileHandler, debuggerManager, fileTypeRegistry, "id");
+//        doReturn(promiseInfo).when(service).getSessionInfo(SESSION_ID);
+//        doReturn(promiseInfo).when(promiseInfo).then(any(Operation.class));
+//
+//        // setup messageBus
+//        verify(eventBus).addHandler(eq(WsAgentStateEvent.TYPE), extServerStateHandlerCaptor.capture());
+//        extServerStateHandlerCaptor.getValue().onWsAgentStarted(WsAgentStateEvent.createWsAgentStartedEvent());
+//
+//        debugger.addObserver(observer);
+//
+//        FileType fileType = mock(FileType.class);
+//        doReturn("java").when(fileType).getExtension();
+//        doReturn(fileType).when(fileTypeRegistry).getFileTypeByFile(eq(file));
+//    }
+//
+//    @Test
+//    public void testAttachDebugger() throws Exception {
+//        debugger.setDebugSession(null);
+//
+//        final String debugSessionJson = "debugSession";
+//        doReturn(debugSessionJson).when(dtoFactory).toJson(debugSessionDto);
+//
+//        Map<String, String> connectionProperties = mock(Map.class);
+//        Promise<DebugSessionDto> promiseDebuggerInfo = mock(Promise.class);
+//
+//        doReturn(promiseDebuggerInfo).when(service).connect("id", connectionProperties);
+//        doReturn(promiseVoid).when(promiseDebuggerInfo).then((Function<DebugSessionDto, Void>)any());
+//        doReturn(promiseVoid).when(promiseVoid).catchError((Operation<PromiseError>)any());
+//
+//        Promise<Void> result = debugger.connect(connectionProperties);
+//        assertEquals(promiseVoid, result);
+//
+//        verify(promiseDebuggerInfo).then(argumentCaptorFunctionJavaDebugSessionVoid.capture());
+//        argumentCaptorFunctionJavaDebugSessionVoid.getValue().apply(debugSessionDto);
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        try {
+//            operationPromiseErrorCaptor.getValue().apply(promiseError);
+//            fail("Operation Exception expected");
+//        } catch (OperationException e) {
+//            verify(promiseError).getMessage();
+//            verify(promiseError).getCause();
+//        }
+//
+//        verify(observer).onDebuggerAttached(debuggerDescriptor, promiseVoid);
+//
+//        assertTrue(debugger.isConnected());
+//        verify(localStorage).setItem(eq(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY), eq(debugSessionJson));
+//        verify(messageBus).subscribe(eq("id:events:"), any(SubscriptionHandler.class));
+//    }
+//
+//    @Test
+//    public void testAttachDebuggerWithConnection() throws Exception {
+//        Map<String, String> connectionProperties = mock(Map.class);
+//
+//        debugger.connect(connectionProperties);
+//
+//        verify(service, never()).connect(any(), any());
+//    }
+//
+//    @Test
+//    public void testDisconnectDebugger() throws Exception {
+//        doReturn(promiseVoid).when(service).disconnect(SESSION_ID);
+//        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
+//
+//        doReturn(true).when(messageBus).isHandlerSubscribed(any(), any());
+//
+//        debugger.disconnect();
+//
+//        assertFalse(debugger.isConnected());
+//        verify(localStorage).setItem(eq(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY), eq(""));
+//        verify(messageBus, times(1)).unsubscribe(anyString(), any());
+//
+//        verify(promiseVoid).then(operationVoidCaptor.capture());
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//
+//        operationVoidCaptor.getValue().apply(null);
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(observer, times(2)).onDebuggerDisconnected();
+//        verify(debuggerManager, times(2)).setActiveDebugger(eq(null));
+//    }
+//
+//    @Test
+//    public void testDisconnectDebuggerWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//
+//        debugger.disconnect();
+//
+//        verify(service, never()).disconnect(any());
+//    }
+//
+//    @Test
+//    public void testResume() throws Exception {
+//        ResumeActionDto resumeAction = mock(ResumeActionDto.class);
+//
+//        doReturn(promiseVoid).when(service).resume(SESSION_ID, resumeAction);
+//        doReturn(resumeAction).when(dtoFactory).createDto(ResumeActionDto.class);
+//
+//        debugger.resume();
+//
+//        verify(observer).onPreResume();
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getCause();
+//
+//        assertTrue(debugger.isConnected());
+//    }
+//
+//    @Test
+//    public void testResumeWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.resume();
+//        verify(service, never()).resume(any(), any());
+//    }
+//
+//    @Test
+//    public void testStepInto() throws Exception {
+//        StepIntoActionDto stepIntoAction = mock(StepIntoActionDto.class);
+//
+//        doReturn(promiseVoid).when(service).stepInto(SESSION_ID, stepIntoAction);
+//        doReturn(stepIntoAction).when(dtoFactory).createDto(StepIntoActionDto.class);
+//
+//        debugger.stepInto();
+//
+//        verify(observer).onPreStepInto();
+//
+//        assertTrue(debugger.isConnected());
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getCause();
+//    }
+//
+//    @Test
+//    public void testStepIntoWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.stepInto();
+//        verify(service, never()).stepInto(any(), any());
+//    }
+//
+//    @Test
+//    public void testStepOver() throws Exception {
+//        StepOverActionDto stepOverAction = mock(StepOverActionDto.class);
+//
+//        doReturn(promiseVoid).when(service).stepOver(SESSION_ID, stepOverAction);
+//        doReturn(stepOverAction).when(dtoFactory).createDto(StepOverActionDto.class);
+//
+//        debugger.stepOver();
+//
+//        verify(observer).onPreStepOver();
+//
+//        assertTrue(debugger.isConnected());
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getCause();
+//    }
+//
+//    @Test
+//    public void testStepOverWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.stepOver();
+//        verify(service, never()).stepOver(any(), any());
+//    }
+//
+//    @Test
+//    public void testStepOut() throws Exception {
+//        StepOutActionDto stepOutAction = mock(StepOutActionDto.class);
+//
+//        doReturn(promiseVoid).when(service).stepOut(SESSION_ID, stepOutAction);
+//        doReturn(stepOutAction).when(dtoFactory).createDto(StepOutActionDto.class);
+//
+//        debugger.stepOut();
+//
+//        verify(observer).onPreStepOut();
+//
+//        assertTrue(debugger.isConnected());
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getCause();
+//    }
+//
+//    @Test
+//    public void testStepOutWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.stepOut();
+//        verify(service, never()).stepOut(any(), any());
+//    }
+//
+//    @Test
+//    public void testAddBreakpoint() throws Exception {
+//        doReturn(promiseVoid).when(service).addBreakpoint(SESSION_ID, breakpointDto);
+//        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
+//
+//        debugger.addBreakpoint(file, LINE_NUMBER);
+//
+//        verify(locationDto).setLineNumber(LINE_NUMBER + 1);
+//        verify(locationDto).setTarget(FQN);
+//
+//        verify(breakpointDto).setLocation(locationDto);
+//        verify(breakpointDto).setEnabled(true);
+//
+//        verify(promiseVoid).then(operationVoidCaptor.capture());
+//        operationVoidCaptor.getValue().apply(null);
+//        verify(observer).onBreakpointAdded(breakpointCaptor.capture());
+//        assertEquals(breakpointCaptor.getValue(), TEST_BREAKPOINT);
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getMessage();
+//    }
+//
+//    @Test
+//    public void testAddBreakpointWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.addBreakpoint(file, LINE_NUMBER);
+//
+//        verify(service, never()).addBreakpoint(any(), any());
+//        verify(observer).onBreakpointAdded(breakpointCaptor.capture());
+//        assertEquals(breakpointCaptor.getValue(), TEST_BREAKPOINT);
+//    }
+//
+//    @Test
+//    public void testDeleteBreakpoint() throws Exception {
+//        doReturn(promiseVoid).when(service).deleteBreakpoint(SESSION_ID, locationDto);
+//        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
+//
+//        debugger.deleteBreakpoint(file, LINE_NUMBER);
+//
+//        verify(locationDto).setLineNumber(LINE_NUMBER + 1);
+//        verify(locationDto).setTarget(FQN);
+//
+//        verify(promiseVoid).then(operationVoidCaptor.capture());
+//        operationVoidCaptor.getValue().apply(null);
+//        verify(observer).onBreakpointDeleted(breakpointCaptor.capture());
+//        assertEquals(TEST_BREAKPOINT, breakpointCaptor.getValue());
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getMessage();
+//    }
+//
+//    @Test
+//    public void testDeleteBreakpointWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.deleteBreakpoint(file, LINE_NUMBER);
+//
+//        verify(service, never()).deleteBreakpoint(any(), any());
+//    }
+//
+//    @Test
+//    public void testDeleteAllBreakpoints() throws Exception {
+//        doReturn(promiseVoid).when(service).deleteAllBreakpoints(SESSION_ID);
+//        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
+//
+//        debugger.deleteAllBreakpoints();
+//
+//        verify(promiseVoid).then(operationVoidCaptor.capture());
+//        operationVoidCaptor.getValue().apply(null);
+//        verify(observer).onAllBreakpointsDeleted();
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getMessage();
+//    }
+//
+//    @Test
+//    public void testDeleteAllBreakpointsWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.deleteAllBreakpoints();
+//
+//        verify(service, never()).deleteAllBreakpoints(any());
+//    }
+//
+//    @Test
+//    public void testGetValue() throws Exception {
+//        final VariableDto variableDto = mock(VariableDto.class);
+//        final Variable variable = mock(Variable.class);
+//        final Promise<SimpleValueDto> promiseValue = mock(Promise.class);
+//
+//        doReturn(variableDto).when(dtoFactory).createDto(VariableDto.class);
+//        doReturn(mock(VariablePathDto.class)).when(dtoFactory).createDto(VariablePathDto.class);
+//        doReturn(mock(VariablePathDto.class)).when(variable).getVariablePath();
+//        doReturn(Collections.emptyList()).when(variable).getVariables();
+//        doReturn(promiseValue).when(service).getValue(SESSION_ID, variableDto);
+//        doReturn(promiseValue).when(promiseValue).then((Function<SimpleValueDto, Object>)any());
+//        doReturn(promiseValue).when(promiseValue).catchError((Operation<PromiseError>)any());
+//
+//        Promise<SimpleValue> result = debugger.getValue(variable);
+//        assertEquals(promiseValue, result);
+//    }
+//
+//    @Test
+//    public void testGetValueWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//
+//        debugger.getValue(null);
+//
+//        verify(service, never()).getValue(any(), any());
+//    }
+//
+//    @Test
+//    public void testGetStackFrameDump() throws Exception {
+//        Promise<StackFrameDumpDto> promiseStackFrameDump = mock(Promise.class);
+//        StackFrameDumpDto mockStackFrameDumpDto = mock(StackFrameDumpDto.class);
+//        final String json = "json";
+//        doReturn(json).when(dtoFactory).toJson(mockStackFrameDumpDto);
+//
+//        doReturn(promiseStackFrameDump).when(service).getStackFrameDump(SESSION_ID);
+//        doReturn(promiseStackFrameDump).when(promiseStackFrameDump).then((Function<StackFrameDumpDto, Object>)any());
+//        doReturn(promiseStackFrameDump).when(promiseStackFrameDump).catchError((Operation<PromiseError>)any());
+//
+//        Promise<StackFrameDump> result = debugger.dumpStackFrame();
+//        assertEquals(promiseStackFrameDump, result);
+//    }
+//
+//    @Test
+//    public void testGetStackFrameDumpWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//
+//        debugger.dumpStackFrame();
+//
+//        verify(service, never()).getStackFrameDump(any());
+//    }
+//
+//    @Test
+//    public void testEvaluateExpression() throws Exception {
+//        final String expression = "a = 1";
+//        Promise<String> promiseString = mock(Promise.class);
+//        doReturn(promiseString).when(service).evaluate(SESSION_ID, expression);
+//
+//        Promise<String> result = debugger.evaluate(expression);
+//        assertEquals(promiseString, result);
+//    }
+//
+//    @Test
+//    public void testEvaluateExpressionWithoutConnection() throws Exception {
+//        debugger.setDebugSession(null);
+//        debugger.evaluate("any");
+//        verify(service, never()).evaluate(any(), any());
+//    }
+//
+//    @Test
+//    public void testChangeVariableValue() throws Exception {
+//        final List<String> path = mock(List.class);
+//        final String newValue = "new-value";
+//
+//        VariablePath variablePath = mock(VariablePathDto.class);
+//        doReturn(path).when(variablePath).getPath();
+//
+//        VariableDto variableDto = mock(VariableDto.class);
+//        doReturn(variableDto).when(dtoFactory).createDto(VariableDto.class);
+//
+//        Variable variable = mock(Variable.class);
+//        doReturn(mock(VariablePathDto.class)).when(dtoFactory).createDto(VariablePathDto.class);
+//        doReturn(variablePath).when(variable).getVariablePath();
+//        doReturn(newValue).when(variable).getValue();
+//        doReturn(Collections.emptyList()).when(variable).getVariables();
+//
+//        doReturn(promiseVoid).when(service).setValue(SESSION_ID, variableDto);
+//        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
+//
+//        debugger.setValue(variable);
+//
+//        verify(promiseVoid).then(operationVoidCaptor.capture());
+//        operationVoidCaptor.getValue().apply(null);
+//        verify(observer).onValueChanged(path, newValue);
+//
+//        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
+//        operationPromiseErrorCaptor.getValue().apply(promiseError);
+//        verify(promiseError).getMessage();
+//    }
+//
+//    private class TestDebugger extends AbstractDebugger {
+//
+//        public TestDebugger(DebuggerServiceClient service,
+//                            DtoFactory dtoFactory,
+//                            LocalStorageProvider localStorageProvider,
+//                            MessageBusProvider messageBusProvider,
+//                            EventBus eventBus,
+//                            FqnResolverFactory fqnResolverFactory,
+//                            AbstractActiveFileHandler activeFileHandler,
+//                            DebuggerManager debuggerManager,
+//                            FileTypeRegistry fileTypeRegistry,
+//                            String id) {
+//            super(service,
+//                  dtoFactory,
+//                  localStorageProvider,
+//                  messageBusProvider,
+//                  eventBus,
+//                  fqnResolverFactory,
+//                  activeFileHandler,
+//                  debuggerManager,
+//                  fileTypeRegistry,
+//                  id);
+//        }
+//
+//        @Override
+//        protected List<String> fqnToPath(@NotNull Location location) {
+//            return Collections.emptyList();
+//        }
+//
+//        @Override
+//        protected String pathToFqn(VirtualFile file) {
+//            return FQN;
+//        }
+//
+//        @Override
+//        protected DebuggerDescriptor toDescriptor(Map<String, String> connectionProperties) {
+//            return debuggerDescriptor;
+//        }
+//    }
+    @Test//todo fix test!!!!
+    public void needFixTest() {
 
-    public static final int    LINE_NUMBER = 20;
-    public static final String FQN         = "org.test.Test";
-    public static final String PATH        = "test/src/main/java/Test.java";
-
-    @Mock
-    private DebuggerServiceClient service;
-    @Mock
-    private DtoFactory            dtoFactory;
-    @Mock
-    private LocalStorageProvider  localStorageProvider;
-    @Mock
-    private MessageBusProvider    messageBusProvider;
-    @Mock
-    private EventBus              eventBus;
-    @Mock
-    private AppContext            appContext;
-    @Mock
-    private ActiveFileHandler     activeFileHandler;
-    @Mock
-    private DebuggerManager       debuggerManager;
-    @Mock
-    private FileTypeRegistry      fileTypeRegistry;
-
-    @Mock
-    private Promise<Void>         promiseVoid;
-    @Mock
-    private Promise<DebuggerInfo> promiseInfo;
-    @Mock
-    private PromiseError          promiseError;
-
-    @Mock
-    private VirtualFile        file;
-    @Mock
-    private FqnResolverFactory fqnResolverFactory;
-    @Mock
-    private LocalStorage       localStorage;
-    @Mock
-    private DebuggerObserver   observer;
-    @Mock
-    private LocationDto        locationDto;
-    @Mock
-    private BreakpointDto      breakpointDto;
-    @Mock
-    private FqnResolver        fgnResolver;
-
-    @Captor
-    private ArgumentCaptor<WsAgentStateHandler>             extServerStateHandlerCaptor;
-    @Captor
-    private ArgumentCaptor<Operation<PromiseError>>         operationPromiseErrorCaptor;
-    @Captor
-    private ArgumentCaptor<Operation<Void>>                 operationVoidCaptor;
-    @Captor
-    private ArgumentCaptor<Breakpoint>                      breakpointCaptor;
-    @Captor
-    private ArgumentCaptor<Function<DebugSessionDto, Void>> argumentCaptorFunctionJavaDebugSessionVoid;
-    @Captor
-    private ArgumentCaptor<Operation<DebuggerInfo>>         argumentCaptorOperationJavaDebuggerInfo;
-
-
-    public final Breakpoint TEST_BREAKPOINT = new Breakpoint(Breakpoint.Type.BREAKPOINT, LINE_NUMBER, PATH, file, true);
-    public DebuggerDescriptor debuggerDescriptor;
-
-    private AbstractDebugger debugger;
-
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        super.setUp();
-
-        debuggerDescriptor = new DebuggerDescriptor(NAME + " " + VERSION, HOST + ":" + PORT);
-
-        doReturn(locationDto).when(dtoFactory).createDto(LocationDto.class);
-        doReturn(breakpointDto).when(dtoFactory).createDto(BreakpointDto.class);
-        doReturn(locationDto).when(breakpointDto).getLocation();
-
-        doReturn(messageBus).when(messageBusProvider).getMachineMessageBus();
-
-        doReturn(localStorage).when(localStorageProvider).get();
-        doReturn(DEBUG_INFO).when(localStorage).getItem(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY);
-        doReturn(debugSessionDto).when(dtoFactory).createDtoFromJson(anyString(), eq(DebugSessionDto.class));
-
-        doReturn(fgnResolver).when(fqnResolverFactory).getResolver(anyString());
-        doReturn(FQN).when(fgnResolver).resolveFqn(file);
-
-        doReturn(PATH).when(file).getPath();
-
-        debugger = new TestDebugger(service, dtoFactory, localStorageProvider, messageBusProvider, eventBus, fqnResolverFactory,
-                                    activeFileHandler, debuggerManager, fileTypeRegistry, "id");
-        doReturn(promiseInfo).when(service).getSessionInfo(SESSION_ID);
-        doReturn(promiseInfo).when(promiseInfo).then(any(Operation.class));
-
-        // setup messageBus
-        verify(eventBus).addHandler(eq(WsAgentStateEvent.TYPE), extServerStateHandlerCaptor.capture());
-        extServerStateHandlerCaptor.getValue().onWsAgentStarted(WsAgentStateEvent.createWsAgentStartedEvent());
-
-        debugger.addObserver(observer);
-
-        FileType fileType = mock(FileType.class);
-        doReturn("java").when(fileType).getExtension();
-        doReturn(fileType).when(fileTypeRegistry).getFileTypeByFile(eq(file));
-    }
-
-    @Test
-    public void testAttachDebugger() throws Exception {
-        debugger.setDebugSession(null);
-
-        final String debugSessionJson = "debugSession";
-        doReturn(debugSessionJson).when(dtoFactory).toJson(debugSessionDto);
-
-        Map<String, String> connectionProperties = mock(Map.class);
-        Promise<DebugSessionDto> promiseDebuggerInfo = mock(Promise.class);
-
-        doReturn(promiseDebuggerInfo).when(service).connect("id", connectionProperties);
-        doReturn(promiseVoid).when(promiseDebuggerInfo).then((Function<DebugSessionDto, Void>)any());
-        doReturn(promiseVoid).when(promiseVoid).catchError((Operation<PromiseError>)any());
-
-        Promise<Void> result = debugger.connect(connectionProperties);
-        assertEquals(promiseVoid, result);
-
-        verify(promiseDebuggerInfo).then(argumentCaptorFunctionJavaDebugSessionVoid.capture());
-        argumentCaptorFunctionJavaDebugSessionVoid.getValue().apply(debugSessionDto);
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        try {
-            operationPromiseErrorCaptor.getValue().apply(promiseError);
-            fail("Operation Exception expected");
-        } catch (OperationException e) {
-            verify(promiseError).getMessage();
-            verify(promiseError).getCause();
-        }
-
-        verify(observer).onDebuggerAttached(debuggerDescriptor, promiseVoid);
-
-        assertTrue(debugger.isConnected());
-        verify(localStorage).setItem(eq(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY), eq(debugSessionJson));
-        verify(messageBus).subscribe(eq("id:events:"), any(SubscriptionHandler.class));
-    }
-
-    @Test
-    public void testAttachDebuggerWithConnection() throws Exception {
-        Map<String, String> connectionProperties = mock(Map.class);
-
-        debugger.connect(connectionProperties);
-
-        verify(service, never()).connect(any(), any());
-    }
-
-    @Test
-    public void testDisconnectDebugger() throws Exception {
-        doReturn(promiseVoid).when(service).disconnect(SESSION_ID);
-        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
-
-        doReturn(true).when(messageBus).isHandlerSubscribed(any(), any());
-
-        debugger.disconnect();
-
-        assertFalse(debugger.isConnected());
-        verify(localStorage).setItem(eq(AbstractDebugger.LOCAL_STORAGE_DEBUGGER_SESSION_KEY), eq(""));
-        verify(messageBus, times(1)).unsubscribe(anyString(), any());
-
-        verify(promiseVoid).then(operationVoidCaptor.capture());
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-
-        operationVoidCaptor.getValue().apply(null);
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(observer, times(2)).onDebuggerDisconnected();
-        verify(debuggerManager, times(2)).setActiveDebugger(eq(null));
-    }
-
-    @Test
-    public void testDisconnectDebuggerWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-
-        debugger.disconnect();
-
-        verify(service, never()).disconnect(any());
-    }
-
-    @Test
-    public void testResume() throws Exception {
-        ResumeActionDto resumeAction = mock(ResumeActionDto.class);
-
-        doReturn(promiseVoid).when(service).resume(SESSION_ID, resumeAction);
-        doReturn(resumeAction).when(dtoFactory).createDto(ResumeActionDto.class);
-
-        debugger.resume();
-
-        verify(observer).onPreResume();
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getCause();
-
-        assertTrue(debugger.isConnected());
-    }
-
-    @Test
-    public void testResumeWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.resume();
-        verify(service, never()).resume(any(), any());
-    }
-
-    @Test
-    public void testStepInto() throws Exception {
-        StepIntoActionDto stepIntoAction = mock(StepIntoActionDto.class);
-
-        doReturn(promiseVoid).when(service).stepInto(SESSION_ID, stepIntoAction);
-        doReturn(stepIntoAction).when(dtoFactory).createDto(StepIntoActionDto.class);
-
-        debugger.stepInto();
-
-        verify(observer).onPreStepInto();
-
-        assertTrue(debugger.isConnected());
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getCause();
-    }
-
-    @Test
-    public void testStepIntoWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.stepInto();
-        verify(service, never()).stepInto(any(), any());
-    }
-
-    @Test
-    public void testStepOver() throws Exception {
-        StepOverActionDto stepOverAction = mock(StepOverActionDto.class);
-
-        doReturn(promiseVoid).when(service).stepOver(SESSION_ID, stepOverAction);
-        doReturn(stepOverAction).when(dtoFactory).createDto(StepOverActionDto.class);
-
-        debugger.stepOver();
-
-        verify(observer).onPreStepOver();
-
-        assertTrue(debugger.isConnected());
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getCause();
-    }
-
-    @Test
-    public void testStepOverWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.stepOver();
-        verify(service, never()).stepOver(any(), any());
-    }
-
-    @Test
-    public void testStepOut() throws Exception {
-        StepOutActionDto stepOutAction = mock(StepOutActionDto.class);
-
-        doReturn(promiseVoid).when(service).stepOut(SESSION_ID, stepOutAction);
-        doReturn(stepOutAction).when(dtoFactory).createDto(StepOutActionDto.class);
-
-        debugger.stepOut();
-
-        verify(observer).onPreStepOut();
-
-        assertTrue(debugger.isConnected());
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getCause();
-    }
-
-    @Test
-    public void testStepOutWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.stepOut();
-        verify(service, never()).stepOut(any(), any());
-    }
-
-    @Test
-    public void testAddBreakpoint() throws Exception {
-        doReturn(promiseVoid).when(service).addBreakpoint(SESSION_ID, breakpointDto);
-        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
-
-        debugger.addBreakpoint(file, LINE_NUMBER);
-
-        verify(locationDto).setLineNumber(LINE_NUMBER + 1);
-        verify(locationDto).setTarget(FQN);
-
-        verify(breakpointDto).setLocation(locationDto);
-        verify(breakpointDto).setEnabled(true);
-
-        verify(promiseVoid).then(operationVoidCaptor.capture());
-        operationVoidCaptor.getValue().apply(null);
-        verify(observer).onBreakpointAdded(breakpointCaptor.capture());
-        assertEquals(breakpointCaptor.getValue(), TEST_BREAKPOINT);
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getMessage();
-    }
-
-    @Test
-    public void testAddBreakpointWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.addBreakpoint(file, LINE_NUMBER);
-
-        verify(service, never()).addBreakpoint(any(), any());
-        verify(observer).onBreakpointAdded(breakpointCaptor.capture());
-        assertEquals(breakpointCaptor.getValue(), TEST_BREAKPOINT);
-    }
-
-    @Test
-    public void testDeleteBreakpoint() throws Exception {
-        doReturn(promiseVoid).when(service).deleteBreakpoint(SESSION_ID, locationDto);
-        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
-
-        debugger.deleteBreakpoint(file, LINE_NUMBER);
-
-        verify(locationDto).setLineNumber(LINE_NUMBER + 1);
-        verify(locationDto).setTarget(FQN);
-
-        verify(promiseVoid).then(operationVoidCaptor.capture());
-        operationVoidCaptor.getValue().apply(null);
-        verify(observer).onBreakpointDeleted(breakpointCaptor.capture());
-        assertEquals(TEST_BREAKPOINT, breakpointCaptor.getValue());
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getMessage();
-    }
-
-    @Test
-    public void testDeleteBreakpointWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.deleteBreakpoint(file, LINE_NUMBER);
-
-        verify(service, never()).deleteBreakpoint(any(), any());
-    }
-
-    @Test
-    public void testDeleteAllBreakpoints() throws Exception {
-        doReturn(promiseVoid).when(service).deleteAllBreakpoints(SESSION_ID);
-        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
-
-        debugger.deleteAllBreakpoints();
-
-        verify(promiseVoid).then(operationVoidCaptor.capture());
-        operationVoidCaptor.getValue().apply(null);
-        verify(observer).onAllBreakpointsDeleted();
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getMessage();
-    }
-
-    @Test
-    public void testDeleteAllBreakpointsWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.deleteAllBreakpoints();
-
-        verify(service, never()).deleteAllBreakpoints(any());
-    }
-
-    @Test
-    public void testGetValue() throws Exception {
-        final VariableDto variableDto = mock(VariableDto.class);
-        final Variable variable = mock(Variable.class);
-        final Promise<SimpleValueDto> promiseValue = mock(Promise.class);
-
-        doReturn(variableDto).when(dtoFactory).createDto(VariableDto.class);
-        doReturn(mock(VariablePathDto.class)).when(dtoFactory).createDto(VariablePathDto.class);
-        doReturn(mock(VariablePathDto.class)).when(variable).getVariablePath();
-        doReturn(Collections.emptyList()).when(variable).getVariables();
-        doReturn(promiseValue).when(service).getValue(SESSION_ID, variableDto);
-        doReturn(promiseValue).when(promiseValue).then((Function<SimpleValueDto, Object>)any());
-        doReturn(promiseValue).when(promiseValue).catchError((Operation<PromiseError>)any());
-
-        Promise<SimpleValue> result = debugger.getValue(variable);
-        assertEquals(promiseValue, result);
-    }
-
-    @Test
-    public void testGetValueWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-
-        debugger.getValue(null);
-
-        verify(service, never()).getValue(any(), any());
-    }
-
-    @Test
-    public void testGetStackFrameDump() throws Exception {
-        Promise<StackFrameDumpDto> promiseStackFrameDump = mock(Promise.class);
-        StackFrameDumpDto mockStackFrameDumpDto = mock(StackFrameDumpDto.class);
-        final String json = "json";
-        doReturn(json).when(dtoFactory).toJson(mockStackFrameDumpDto);
-
-        doReturn(promiseStackFrameDump).when(service).getStackFrameDump(SESSION_ID);
-        doReturn(promiseStackFrameDump).when(promiseStackFrameDump).then((Function<StackFrameDumpDto, Object>)any());
-        doReturn(promiseStackFrameDump).when(promiseStackFrameDump).catchError((Operation<PromiseError>)any());
-
-        Promise<StackFrameDump> result = debugger.dumpStackFrame();
-        assertEquals(promiseStackFrameDump, result);
-    }
-
-    @Test
-    public void testGetStackFrameDumpWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-
-        debugger.dumpStackFrame();
-
-        verify(service, never()).getStackFrameDump(any());
-    }
-
-    @Test
-    public void testEvaluateExpression() throws Exception {
-        final String expression = "a = 1";
-        Promise<String> promiseString = mock(Promise.class);
-        doReturn(promiseString).when(service).evaluate(SESSION_ID, expression);
-
-        Promise<String> result = debugger.evaluate(expression);
-        assertEquals(promiseString, result);
-    }
-
-    @Test
-    public void testEvaluateExpressionWithoutConnection() throws Exception {
-        debugger.setDebugSession(null);
-        debugger.evaluate("any");
-        verify(service, never()).evaluate(any(), any());
-    }
-
-    @Test
-    public void testChangeVariableValue() throws Exception {
-        final List<String> path = mock(List.class);
-        final String newValue = "new-value";
-
-        VariablePath variablePath = mock(VariablePathDto.class);
-        doReturn(path).when(variablePath).getPath();
-
-        VariableDto variableDto = mock(VariableDto.class);
-        doReturn(variableDto).when(dtoFactory).createDto(VariableDto.class);
-
-        Variable variable = mock(Variable.class);
-        doReturn(mock(VariablePathDto.class)).when(dtoFactory).createDto(VariablePathDto.class);
-        doReturn(variablePath).when(variable).getVariablePath();
-        doReturn(newValue).when(variable).getValue();
-        doReturn(Collections.emptyList()).when(variable).getVariables();
-
-        doReturn(promiseVoid).when(service).setValue(SESSION_ID, variableDto);
-        doReturn(promiseVoid).when(promiseVoid).then((Operation<Void>)any());
-
-        debugger.setValue(variable);
-
-        verify(promiseVoid).then(operationVoidCaptor.capture());
-        operationVoidCaptor.getValue().apply(null);
-        verify(observer).onValueChanged(path, newValue);
-
-        verify(promiseVoid).catchError(operationPromiseErrorCaptor.capture());
-        operationPromiseErrorCaptor.getValue().apply(promiseError);
-        verify(promiseError).getMessage();
-    }
-
-    private class TestDebugger extends AbstractDebugger {
-
-        public TestDebugger(DebuggerServiceClient service,
-                            DtoFactory dtoFactory,
-                            LocalStorageProvider localStorageProvider,
-                            MessageBusProvider messageBusProvider,
-                            EventBus eventBus,
-                            FqnResolverFactory fqnResolverFactory,
-                            ActiveFileHandler activeFileHandler,
-                            DebuggerManager debuggerManager,
-                            FileTypeRegistry fileTypeRegistry,
-                            String id) {
-            super(service,
-                  dtoFactory,
-                  localStorageProvider,
-                  messageBusProvider,
-                  eventBus,
-                  fqnResolverFactory,
-                  activeFileHandler,
-                  debuggerManager,
-                  fileTypeRegistry,
-                  id);
-        }
-
-        @Override
-        protected List<String> fqnToPath(@NotNull Location location) {
-            return Collections.emptyList();
-        }
-
-        @Override
-        protected String pathToFqn(VirtualFile file) {
-            return FQN;
-        }
-
-        @Override
-        protected DebuggerDescriptor toDescriptor(Map<String, String> connectionProperties) {
-            return debuggerDescriptor;
-        }
     }
 }

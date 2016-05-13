@@ -16,6 +16,7 @@ import com.google.web.bindery.event.shared.EventBus;
 
 import org.eclipse.che.api.debug.shared.dto.SimpleValueDto;
 import org.eclipse.che.api.debug.shared.model.SimpleValue;
+import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.machine.events.WsAgentStateEvent;
 import org.eclipse.che.ide.api.machine.events.WsAgentStateHandler;
 import org.eclipse.che.api.debug.shared.dto.BreakpointDto;
@@ -60,6 +61,7 @@ import org.eclipse.che.ide.debug.DebuggerManager;
 import org.eclipse.che.ide.debug.DebuggerObservable;
 import org.eclipse.che.ide.debug.DebuggerObserver;
 import org.eclipse.che.ide.dto.DtoFactory;
+import org.eclipse.che.ide.ext.java.client.project.node.JavaFileNode;
 import org.eclipse.che.ide.rest.HTTPStatus;
 import org.eclipse.che.ide.util.loging.Log;
 import org.eclipse.che.ide.util.storage.LocalStorage;
@@ -89,6 +91,7 @@ public abstract class AbstractDebugger implements Debugger, DebuggerObservable {
     protected final DtoFactory         dtoFactory;
     protected final FileTypeRegistry   fileTypeRegistry;
     protected final FqnResolverFactory fqnResolverFactory;
+    protected final AppContext         appContext;
 
     private final List<DebuggerObserver> observers;
     private final DebuggerServiceClient  service;
@@ -114,7 +117,8 @@ public abstract class AbstractDebugger implements Debugger, DebuggerObservable {
                             ActiveFileHandler activeFileHandler,
                             DebuggerManager debuggerManager,
                             FileTypeRegistry fileTypeRegistry,
-                            String type) {
+                            String type,
+                            AppContext appContext) {
         this.service = service;
         this.dtoFactory = dtoFactory;
         this.localStorageProvider = localStorageProvider;
@@ -125,6 +129,7 @@ public abstract class AbstractDebugger implements Debugger, DebuggerObservable {
         this.observers = new ArrayList<>();
         this.fileTypeRegistry = fileTypeRegistry;
         this.debuggerType = type;
+        this.appContext = appContext;
         this.eventChannel = debuggerType + ":events:";
 
         restoreDebuggerState();
@@ -231,9 +236,7 @@ public abstract class AbstractDebugger implements Debugger, DebuggerObservable {
     }
 
     private void openCurrentFile() {
-        activeFileHandler.openFile(fqnToPath(currentLocation),
-                                   currentLocation.getTarget(),
-                                   currentLocation.getLineNumber(),
+        activeFileHandler.openFile(currentLocation,
                                    new AsyncCallback<VirtualFile>() {
                                        @Override
                                        public void onFailure(Throwable caught) {
@@ -324,11 +327,10 @@ public abstract class AbstractDebugger implements Debugger, DebuggerObservable {
             LocationDto locationDto = dtoFactory.createDto(LocationDto.class);
             locationDto.setLineNumber(lineNumber + 1);
 
-            String fqn = pathToFqn(file);
-            if (fqn == null) {
+            if (!(file instanceof JavaFileNode)) {
                 return;
             }
-            locationDto.setTarget(fqn);
+            locationDto.setTarget(((JavaFileNode)file).getFqn());
 
             BreakpointDto breakpointDto = dtoFactory.createDto(BreakpointDto.class);
             breakpointDto.setLocation(locationDto);

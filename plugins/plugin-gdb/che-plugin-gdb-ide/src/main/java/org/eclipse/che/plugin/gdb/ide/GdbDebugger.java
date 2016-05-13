@@ -53,7 +53,7 @@ public class GdbDebugger extends AbstractDebugger {
                        MessageBusProvider messageBusProvider,
                        EventBus eventBus,
                        FqnResolverFactory fqnResolverFactory,
-                       GdbDebuggerFileHandler activeFileHandler,
+                       GdbDebuggerFileHandler activeFileHandler,//todo maybe int should though gin?
                        DebuggerManager debuggerManager,
                        FileTypeRegistry fileTypeRegistry,
                        AppContext appContext) {
@@ -67,7 +67,8 @@ public class GdbDebugger extends AbstractDebugger {
               activeFileHandler,
               debuggerManager,
               fileTypeRegistry,
-              ID);
+              ID,
+              appContext);
         this.appContext = appContext;
     }
 

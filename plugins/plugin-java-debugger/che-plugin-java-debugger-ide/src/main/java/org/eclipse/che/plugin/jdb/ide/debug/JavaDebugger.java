@@ -70,7 +70,8 @@ public class JavaDebugger extends AbstractDebugger {
               javaDebuggerFileHandler,
               debuggerManager,
               fileTypeRegistry,
-              ID);
+              ID,
+              appContext);
         this.appContext = appContext;
     }
 

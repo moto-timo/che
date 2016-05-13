@@ -45,7 +45,7 @@ public class JavaSourceFolderUtil {
                 final String projectPath = projectConfig.getPath();
                 final String itemPath = item.getPath();
 
-                List<String> sourceFolders = attributes.get(projectBuilder + ".source.folder");
+                List<String> sourceFolders = attributes.get("java.source.folder");
                 boolean isSrcDir = isSourceFolder(sourceFolders, projectPath, itemPath);
 
                 List<String> testSourceFolders = attributes.get(projectBuilder + ".test.source.folder");

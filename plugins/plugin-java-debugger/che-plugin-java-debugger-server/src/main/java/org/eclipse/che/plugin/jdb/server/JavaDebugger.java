@@ -29,6 +29,7 @@ import com.sun.jdi.request.EventRequestManager;
 import com.sun.jdi.request.InvalidRequestStateException;
 import com.sun.jdi.request.StepRequest;
 
+import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.debugger.server.Debugger;
 import org.eclipse.che.api.debugger.server.exceptions.DebuggerException;
 import org.eclipse.che.api.debug.shared.dto.BreakpointDto;
@@ -61,6 +62,7 @@ import org.eclipse.che.plugin.jdb.server.exceptions.DebuggerAbsentInformationExc
 import org.eclipse.che.plugin.jdb.server.expression.Evaluator;
 import org.eclipse.che.plugin.jdb.server.expression.ExpressionException;
 import org.eclipse.che.plugin.jdb.server.expression.ExpressionParser;
+import org.eclipse.che.plugin.jdb.server.utils.JavaDebuggerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,6 +118,8 @@ public class JavaDebugger implements EventsHandler, Debugger {
     /** Lock for synchronization debug processes. */
     private Lock lock = new ReentrantLock();
 
+    private String projectPath;
+
     /**
      * Create debugger and connect it to the JVM which already running at the specified host and port.
      *
@@ -126,9 +130,10 @@ public class JavaDebugger implements EventsHandler, Debugger {
      * @throws DebuggerException
      *         when connection to Java VM is not established
      */
-    JavaDebugger(String host, int port, DebuggerCallback debuggerCallback) throws DebuggerException {
+    JavaDebugger(String host, int port, String projectPath, DebuggerCallback debuggerCallback) throws DebuggerException {
         this.host = host;
         this.port = port;
+        this.projectPath = projectPath;
         this.debuggerCallback = debuggerCallback;
         connect();
     }
@@ -291,7 +296,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
             // Breakpoint always enabled at the moment. Managing states of breakpoint is not supported for now.
             breakPoints.add(newDto(BreakpointDto.class).withEnabled(true)
                                                        .withLocation(newDto(LocationDto.class).withTarget(location.declaringType().name())
-                                                                                        .withLineNumber(location.lineNumber())));
+                                                                                              .withLineNumber(location.lineNumber())));
         }
         Collections.sort(breakPoints, BREAKPOINT_COMPARATOR);
         return breakPoints;
@@ -347,26 +352,26 @@ public class JavaDebugger implements EventsHandler, Debugger {
             for (JdiField f : currentFrame.getFields()) {
                 List<String> variablePath = asList(f.isStatic() ? "static" : "this", f.getName());
                 dump.getFields().add((FieldDto)newDto(FieldDto.class).withIsFinal(f.isFinal())
-                                                               .withIsStatic(f.isStatic())
-                                                               .withIsTransient(f.isTransient())
-                                                               .withIsVolatile(f.isVolatile())
-                                                               .withName(f.getName())
-                                                               .withExistInformation(existInformation)
-                                                               .withValue(f.getValue().getAsString())
-                                                               .withType(f.getTypeName())
+                                                                     .withIsStatic(f.isStatic())
+                                                                     .withIsTransient(f.isTransient())
+                                                                     .withIsVolatile(f.isVolatile())
+                                                                     .withName(f.getName())
+                                                                     .withExistInformation(existInformation)
+                                                                     .withValue(f.getValue().getAsString())
+                                                                     .withType(f.getTypeName())
                                                                      .withVariablePath(newDto(VariablePathDto.class).withPath(variablePath))
-                                                               .withPrimitive(f.isPrimitive()));
+                                                                     .withPrimitive(f.isPrimitive()));
             }
             for (JdiLocalVariable var : variables) {
                 dump.getVariables().add(newDto(VariableDto.class).withName(var.getName())
-                                                                   .withExistInformation(existInformation)
-                                                                   .withValue(var.getValue().getAsString())
-                                                                   .withType(var.getTypeName())
-                                                                   .withVariablePath(
-                                                                           newDto(VariablePathDto.class)
-                                                                                   .withPath(singletonList(var.getName()))
-                                                                   )
-                                                                   .withPrimitive(var.isPrimitive()));
+                                                                 .withExistInformation(existInformation)
+                                                                 .withValue(var.getValue().getAsString())
+                                                                 .withType(var.getTypeName())
+                                                                 .withVariablePath(
+                                                                         newDto(VariablePathDto.class)
+                                                                                 .withPath(singletonList(var.getName()))
+                                                                 )
+                                                                 .withPrimitive(var.isPrimitive()));
             }
             return dump;
         } finally {
@@ -548,7 +553,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
         if (hitBreakpoint) {
             com.sun.jdi.Location jdiLocation = event.location();
 
-            Location location = new LocationImpl(jdiLocation.declaringType().name(), jdiLocation.lineNumber());
+            Location location = JavaDebuggerUtils.getLocation(projectPath, jdiLocation);//set fqn or real path
             debuggerCallback.onEvent(new SuspendEventImpl(location));
         }
 
@@ -561,7 +566,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
         setCurrentThread(event.thread());
         com.sun.jdi.Location jdiLocation = event.location();
 
-        Location location = new LocationImpl(jdiLocation.declaringType().name(), jdiLocation.lineNumber());
+        Location location = JavaDebuggerUtils.getLocation(projectPath, jdiLocation);//set fqn or real path
         debuggerCallback.onEvent(new SuspendEventImpl(location));
         return false;
     }

@@ -19,6 +19,7 @@ import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.PromiseError;
 import org.eclipse.che.ide.api.action.AbstractPerspectiveAction;
 import org.eclipse.che.ide.api.action.ActionEvent;
+import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.debug.DebugConfiguration;
 import org.eclipse.che.ide.api.debug.DebugConfigurationsManager;
 import org.eclipse.che.ide.debug.Debugger;
@@ -45,13 +46,15 @@ public class DebugAction extends AbstractPerspectiveAction {
     private final DebuggerManager              debuggerManager;
     private final DialogFactory                dialogFactory;
     private final DebugConfigurationsManager   configurationsManager;
+    private final AppContext                   appContext;
 
     @Inject
     public DebugAction(DebuggerLocalizationConstant localizationConstants,
                        DebuggerResources resources,
                        DebuggerManager debuggerManager,
                        DialogFactory dialogFactory,
-                       DebugConfigurationsManager debugConfigurationsManager) {
+                       DebugConfigurationsManager debugConfigurationsManager,
+                       AppContext appContext) {
         super(Collections.singletonList(PROJECT_PERSPECTIVE_ID),
               localizationConstants.debugActionTitle(),
               localizationConstants.debugActionDescription(),
@@ -61,6 +64,7 @@ public class DebugAction extends AbstractPerspectiveAction {
         this.debuggerManager = debuggerManager;
         this.dialogFactory = dialogFactory;
         this.configurationsManager = debugConfigurationsManager;
+        this.appContext = appContext;
     }
 
     @Override
@@ -98,6 +102,7 @@ public class DebugAction extends AbstractPerspectiveAction {
             Map<String, String> connectionProperties = new HashMap<>(2 + debugConfiguration.getConnectionProperties().size());
             connectionProperties.put("HOST", debugConfiguration.getHost());
             connectionProperties.put("PORT", String.valueOf(debugConfiguration.getPort()));
+            connectionProperties.put("PROJECT_PATH", appContext.getCurrentProject().getRootProject().getPath());//todo can be null pointer Exception
             connectionProperties.putAll(debugConfiguration.getConnectionProperties());
 
             debugger.connect(connectionProperties).catchError(new Operation<PromiseError>() {
