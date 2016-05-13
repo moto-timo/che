@@ -67,6 +67,27 @@ public class FactoryServiceClientImpl implements FactoryServiceClient {
     }
 
     /**
+     * Get factory object based on input github key
+     *
+     * @param githubUrl
+     *         github URL to use to retrieve the factory
+     * @param validate
+     *         indicates whether or not factory should be validated by accept validator
+     * @param callback
+     *         callback which return valid JSON object of factory or exception if occurred
+     */
+    @Override
+    public void getFactoryGithub(@NotNull String githubUrl, boolean validate, @NotNull AsyncRequestCallback<Factory> callback) {
+        StringBuilder url = new StringBuilder(API_FACTORY_BASE_URL).append("github/?url=" + githubUrl);
+        if (validate) {
+            url.append("&").append("validate=true");
+        }
+        asyncRequestFactory.createGetRequest(url.toString()).header(HTTPHeader.ACCEPT, MimeType.APPLICATION_JSON)
+                           .send(callback);
+
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

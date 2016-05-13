@@ -30,19 +30,24 @@ import org.eclipse.che.ide.CoreLocalizationConstant;
 import org.eclipse.che.ide.actions.WorkspaceSnapshotCreator;
 import org.eclipse.che.ide.api.app.AppContext;
 import org.eclipse.che.ide.api.component.Component;
+import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.api.notification.NotificationManager;
 import org.eclipse.che.ide.api.preferences.PreferencesManager;
+import org.eclipse.che.ide.collections.Jso;
+import org.eclipse.che.ide.collections.js.JsoArray;
 import org.eclipse.che.ide.context.BrowserQueryFieldRenderer;
 import org.eclipse.che.ide.dto.DtoFactory;
 import org.eclipse.che.ide.rest.AsyncRequestCallback;
 import org.eclipse.che.ide.rest.DtoUnmarshallerFactory;
-import org.eclipse.che.ide.api.dialogs.DialogFactory;
 import org.eclipse.che.ide.ui.loaders.initialization.InitialLoadingInfo;
 import org.eclipse.che.ide.ui.loaders.initialization.LoaderPresenter;
 import org.eclipse.che.ide.util.loging.Log;
 import org.eclipse.che.ide.websocket.MessageBusProvider;
 import org.eclipse.che.ide.workspace.create.CreateWorkspacePresenter;
 import org.eclipse.che.ide.workspace.start.StartWorkspacePresenter;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.eclipse.che.api.core.model.workspace.WorkspaceStatus.RUNNING;
 import static org.eclipse.che.ide.api.notification.StatusNotification.DisplayMode.FLOAT_MODE;
@@ -101,27 +106,47 @@ public class FactoryWorkspaceComponent extends WorkspaceComponent implements Com
     @Override
     public void start(final Callback<Component, Exception> callback) {
         this.callback = callback;
-        String factoryParams = browserQueryFieldRenderer.getParameterFromURLByName("factory");
+        Jso factoryParams = browserQueryFieldRenderer.getParameters();
+        JsoArray<String> keys = factoryParams.getKeys();
+        Map<String, String> factoryParameters = new HashMap<>();
+        // check all factory parameters
+        for (String key : keys.toList()) {
+            if (key.startsWith("factory-")) {
+                String value = factoryParams.getStringField(key);
+                factoryParameters.put(key.substring("factory-".length()), value);
+            }
+        }
 
         // get workspace ID to use dedicated workspace for this factory
         this.workspaceId = browserQueryFieldRenderer.getParameterFromURLByName("workspaceId");
 
-        factoryServiceClient.getFactory(factoryParams, true,
-                                        new AsyncRequestCallback<Factory>(dtoUnmarshallerFactory.newUnmarshaller(Factory.class)) {
-                                            @Override
-                                            protected void onSuccess(Factory result) {
-                                                appContext.setFactory(result);
 
-                                                // get workspace
-                                                tryStartWorkspace();
-                                            }
+        AsyncRequestCallback<Factory> asyncRequestCallback =
+                new AsyncRequestCallback<Factory>(dtoUnmarshallerFactory.newUnmarshaller(Factory.class)) {
+                    @Override
+                    protected void onSuccess(Factory result) {
+                        appContext.setFactory(result);
 
-                                            @Override
-                                            protected void onFailure(Throwable error) {
-                                                Log.error(FactoryWorkspaceComponent.class, "Unable to load Factory", error);
-                                                callback.onFailure(new Exception(error.getCause()));
-                                            }
-                                        });
+                        // get workspace
+                        tryStartWorkspace();
+                    }
+
+                    @Override
+                    protected void onFailure(Throwable error) {
+                        Log.error(FactoryWorkspaceComponent.class, "Unable to load Factory", error);
+                        callback.onFailure(new Exception(error.getCause()));
+                    }
+                };
+
+        // now search if it's a factory based on id or from url
+        if (factoryParameters.containsKey("id")) {
+            factoryServiceClient.getFactory(factoryParameters.get("id"), true, asyncRequestCallback);
+        } else if (factoryParameters.containsKey("github")) {
+            factoryServiceClient.getFactoryGithub(factoryParameters.get("github"), true, asyncRequestCallback);
+        } else {
+            // invalid mode not handled
+            notificationManager.notify(locale.failedToLoadFactory(), locale.failedToLoadFactoryConfiguration(), FAIL, FLOAT_MODE);
+        }
     }
 
     @Override

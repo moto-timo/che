@@ -38,6 +38,20 @@ public interface FactoryServiceClient {
      */
     void getFactory(@NotNull String factoryId, boolean validate, @NotNull AsyncRequestCallback<Factory> callback);
 
+
+    /**
+     * Get factory object based on input github key
+     *
+     * @param githubUrl
+     *         github URL to use to retrieve the factory
+     * @param validate
+     *         indicates whether or not factory should be validated by accept validator
+     * @param callback
+     *         callback which return valid JSON object of factory or exception if occurred
+     */
+    void getFactoryGithub(@NotNull String githubUrl, boolean validate, @NotNull AsyncRequestCallback<Factory> callback);
+
+
     /**
      * @param factoryId
      *         Factory's id

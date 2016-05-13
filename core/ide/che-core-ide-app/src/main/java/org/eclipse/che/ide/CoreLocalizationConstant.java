@@ -565,6 +565,9 @@ public interface CoreLocalizationConstant extends Messages {
     @Key("failed.to.load.factory")
     String failedToLoadFactory();
 
+    @Key("failed.to.load.factory.configuration")
+    String failedToLoadFactoryConfiguration();
+
     @Key("workspace.config.undefined")
     String workspaceConfigUndefined();
 
