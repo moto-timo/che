@@ -283,7 +283,7 @@ public class MoveViewImpl extends Window implements MoveView {
         List<List<String>> pathsToExpand = tree.replaceSubtree(oldNode, newNode, false);
         tree.expandPaths(pathsToExpand, false);
 
-        // restore selected node
+        // onRestore selected node
         if (selectedNode != null) {
             tree.getSelectionModel().selectSingleNode(selectedNode);
         }

@@ -83,7 +83,7 @@ public class RefactoringUpdater {
     /**
      * Iterates over each refactoring change and according to change type performs specific update operation.
      * i.e. for {@code ChangeName#UPDATE} updates only opened editors, for {@code ChangeName#MOVE or ChangeName#RENAME_COMPILATION_UNIT}
-     * updates only new paths and opened editors, for {@code ChangeName#RENAME_PACKAGE} reloads package structure and restore expansion.
+     * updates only new paths and opened editors, for {@code ChangeName#RENAME_PACKAGE} reloads package structure and onRestore expansion.
      *
      * @param changes
      *         applied changes
@@ -231,7 +231,7 @@ public class RefactoringUpdater {
         };
     }
 
-    /** Find new package node and restore expansion if need. */
+    /** Find new package node and onRestore expansion if need. */
     private Function<Void, Promise<Void>> proceedRefactoringRenamePackage(final ChangeInfo changeInfo, final RefactorInfo refactorInfo) {
         return new Function<Void, Promise<Void>>() {
             @Override
@@ -244,7 +244,7 @@ public class RefactoringUpdater {
                                       .thenPromise(new Function<Node, Promise<Void>>() {
                                           @Override
                                           public Promise<Void> apply(Node node) throws FunctionException {
-                                              //restore expand state
+                                              //onRestore expand state
                                               if (wasPackageExpanded) {
                                                   projectExplorer.setExpanded(node, true);
                                               }

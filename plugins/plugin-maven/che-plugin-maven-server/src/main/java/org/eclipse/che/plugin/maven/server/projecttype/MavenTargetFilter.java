@@ -70,7 +70,7 @@ public class MavenTargetFilter implements VirtualFileFilter {
         } else {
 //            for (ProjectConfig projectConfig : project.getModules()) {
 //                if (rootFolder.getPath().toString().equals(projectConfig.getPath())) {
-//                    return MavenAttributes.MAVEN_ID.equals(projectConfig.getType());
+//                    return MavenAttributes.MAVEN_ID.equals(projectConfig.getCategory());
 //                }
 //            }
             return false;

@@ -58,8 +58,23 @@ import org.eclipse.che.ide.extension.machine.client.perspective.widgets.tab.head
 import org.eclipse.che.ide.extension.machine.client.perspective.widgets.tab.header.TabHeaderImpl;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelView;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelViewImpl;
+import org.eclipse.che.ide.extension.machine.client.targets.CategoryPage;
+import org.eclipse.che.ide.extension.machine.client.targets.Target;
+import org.eclipse.che.ide.extension.machine.client.targets.TargetDefaultImpl;
 import org.eclipse.che.ide.extension.machine.client.targets.TargetsView;
 import org.eclipse.che.ide.extension.machine.client.targets.TargetsViewImpl;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.development.DevelopmentCategoryPresenter;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.development.DevelopmentMachineTarget;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.development.DevelopmentView;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.development.DevelopmentViewImpl;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.docker.DockerCategoryPresenter;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.docker.DockerMachineTarget;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.docker.DockerView;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.docker.DockerViewImpl;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshCategoryPresenter;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshMachineTarget;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshView;
+import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshViewImpl;
 import org.eclipse.che.ide.ui.toolbar.ToolbarPresenter;
 
 import static org.eclipse.che.ide.extension.machine.client.perspective.OperationsPerspective.OPERATIONS_PERSPECTIVE_ID;
@@ -116,5 +131,21 @@ public class MachineGinModule extends AbstractGinModule {
         bind(MachineManager.class).to(MachineManagerImpl.class).in(Singleton.class);
 
         bindConstant().annotatedWith(Names.named("machine.extension.api_port")).to(Constants.WS_AGENT_PORT);
+
+        bind(SshView.class).to(SshViewImpl.class);
+        bind(DockerView.class).to(DockerViewImpl.class);
+        bind(DevelopmentView.class).to(DevelopmentViewImpl.class);
+
+
+        final GinMultibinder<Target> targetBinder = GinMultibinder.newSetBinder(binder(), Target.class);
+        targetBinder.addBinding().to(TargetDefaultImpl.class);
+        targetBinder.addBinding().to(SshMachineTarget.class);
+        targetBinder.addBinding().to(DockerMachineTarget.class);
+        targetBinder.addBinding().to(DevelopmentMachineTarget.class);
+
+        final GinMultibinder<CategoryPage> categoryPageBinder = GinMultibinder.newSetBinder(binder(), CategoryPage.class);
+        categoryPageBinder.addBinding().to(SshCategoryPresenter.class);
+        categoryPageBinder.addBinding().to(DockerCategoryPresenter.class);
+        categoryPageBinder.addBinding().to(DevelopmentCategoryPresenter.class);
     }
 }

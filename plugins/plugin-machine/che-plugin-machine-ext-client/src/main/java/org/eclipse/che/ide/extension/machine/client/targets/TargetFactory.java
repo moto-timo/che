@@ -8,24 +8,28 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.ide.ui.zeroclipboard;
+package org.eclipse.che.ide.extension.machine.client.targets;
 
-import com.google.gwt.resources.client.ClientBundle;
-import com.google.gwt.resources.client.CssResource;
+import org.eclipse.che.api.machine.shared.dto.CommandDto;
 
-import org.vectomatic.dom.svg.ui.SVGResource;
+import javax.validation.constraints.NotNull;
 
 /**
+ * Factory for {@link Target} instances.
+ *
  * @author Oleksii Orel
  */
-public interface ZeroClipboardResources extends ClientBundle {
-    interface Css extends CssResource {
-        String clipboardButton();
-    }
+public abstract class TargetFactory {
 
-    @Source({"ZeroClipboard.css", "org/eclipse/che/ide/api/ui/style.css"})
-    Css clipboardCss();
+    /**
+     * Creates a new command configuration based on the given {@link CommandDto}.
+     *
+     * @param name
+     */
+    public abstract Target createTarget(@NotNull String name);
 
-    @Source("clipboard.svg")
-    SVGResource clipboard();
+    public abstract Target createDefaultTarget();
+
+    public abstract void deleteTarget(Target target);
+
 }

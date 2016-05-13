@@ -369,7 +369,7 @@ public class CopyViewImpl extends Window implements CopyView {
             selectedNode = selectedNodes.get(0);
         }
 
-        // restore selected node
+        // onRestore selected node
         if (selectedNode != null) {
             tree.getSelectionModel().selectSingleNode(selectedNode);
         }

@@ -135,7 +135,7 @@ public interface Document {
 
     /**
      * Returns the type of the document partition containing the given offset for the given partitioning. This is a convenience
-     * method for <code>getPartition(partitioning, offset, boolean).getType()</code>.
+     * method for <code>getPartition(partitioning, offset, boolean).getCategory()</code>.
      * <p>
      * If <code>preferOpenPartitions</code> is <code>true</code>, precedence is given to an open partition ending at
      * <code>offset</code> over a delimited partition starting at <code>offset</code>. If it is <code>false</code>, precedence is
@@ -550,7 +550,7 @@ public interface Document {
 
     /**
      * Returns the type of the document partition containing the given offset. This is a convenience method for
-     * <code>getPartition(offset).getType()</code>.
+     * <code>getPartition(offset).getCategory()</code>.
      * <p/>
      * Use {@link #getContentType(String, int, boolean)} when the document supports multiple partitionings. In
      * that case this method is equivalent to:
